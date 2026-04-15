@@ -6,6 +6,7 @@ gemspec
 
 group :development do
   gem 'lefthook',            require: false
+  gem 'rake',                require: false
   gem 'rubocop',             '~> 1.86', require: false
   gem 'rubocop-performance', require: false
   gem 'rubocop-rspec',       require: false
