@@ -21,10 +21,10 @@ module BrandLogo
       ].freeze, T::Array[String])
 
       MIME_TO_FORMAT = T.let({
-        'image/png'     => 'png',
+        'image/png' => 'png',
         'image/svg+xml' => 'svg',
-        'image/jpeg'    => 'jpg',
-        'image/webp'    => 'webp'
+        'image/jpeg' => 'jpg',
+        'image/webp' => 'webp'
       }.freeze, T::Hash[String, String])
 
       sig do

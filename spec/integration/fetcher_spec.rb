@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 RSpec.describe BrandLogo::Fetcher do
+  subject(:fetcher) do
+    described_class.new(config: config, strategies: [scraping_strategy, duckduckgo_strategy])
+  end
+
   let(:image_analyzer) { BrandLogo::FakeImageAnalyzer.new(default: { width: 32, height: 32 }) }
   let(:http_client)    { BrandLogo::FakeHttpClient.new(responses) }
   let(:config)         { BrandLogo::Config.new }
@@ -21,10 +25,6 @@ RSpec.describe BrandLogo::Fetcher do
       http_client: http_client,
       image_analyzer: image_analyzer
     )
-  end
-
-  subject(:fetcher) do
-    described_class.new(config: config, strategies: [scraping_strategy, duckduckgo_strategy])
   end
 
   describe '#fetch' do

@@ -22,7 +22,7 @@ RSpec.shared_examples 'a favicon strategy' do
     it 'returns an array of Icon objects' do
       result = subject.fetch_all('notfound.example.com')
       expect(result).to be_an(Array)
-      result.each { |icon| expect(icon).to be_a(BrandLogo::Icon) }
+      expect(result).to all(be_a(BrandLogo::Icon))
     end
   end
 end

@@ -1,11 +1,6 @@
 # frozen_string_literal: true
 
 RSpec.describe BrandLogo::Strategies::ScrapingStrategy do
-  let(:config)         { BrandLogo::Config.new }
-  let(:image_analyzer) { BrandLogo::FakeImageAnalyzer.new(default: { width: 32, height: 32 }) }
-  let(:html_parser)    { BrandLogo::NokogiriParser.new }
-  let(:http_client)    { BrandLogo::FakeHttpClient.new(responses) }
-
   subject(:strategy) do
     described_class.new(
       config: config,
@@ -15,9 +10,13 @@ RSpec.describe BrandLogo::Strategies::ScrapingStrategy do
     )
   end
 
-  include_examples 'a favicon strategy'
-
+  let(:config)         { BrandLogo::Config.new }
   let(:responses) { {} }
+  let(:image_analyzer) { BrandLogo::FakeImageAnalyzer.new(default: { width: 32, height: 32 }) }
+  let(:html_parser)    { BrandLogo::NokogiriParser.new }
+  let(:http_client)    { BrandLogo::FakeHttpClient.new(responses) }
+
+  it_behaves_like 'a favicon strategy'
 
   describe '#fetch_all' do
     context 'when the HTTPS page has a favicon' do

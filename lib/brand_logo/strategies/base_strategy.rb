@@ -13,6 +13,7 @@ module BrandLogo
     class BaseStrategy
       extend T::Sig
       extend T::Helpers
+
       abstract!
 
       UNKNOWN_DIMENSION_SCORE = T.let(-1, Integer)

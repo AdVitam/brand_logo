@@ -26,7 +26,7 @@ Metrics/BlockLength:
     - '*.gemspec'
 
 Metrics/MethodLength:
-  Max: 20
+  Max: 25
 
 Metrics/ClassLength:
   Max: 150
@@ -48,5 +48,25 @@ RSpec/DescribeClass:
   Exclude:
     - 'spec/integration/**/*'
 
-RSpec/FilePath:
+RSpec/SpecFilePathFormat:
+  Enabled: false
+
+RSpec/SpecFilePathSuffix:
+  Enabled: false
+
+# Strategy specs legitimately need 6+ memoized helpers (config, http_client,
+# image_analyzer, html_parser, responses, subject).
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+# We mock HTTP chain and the http gem's response — instance_double would
+# require pinning to Nokogiri / HTTP internal classes that may change.
+RSpec/VerifiedDoubles:
+  Enabled: false
+
+# html_parser_spec tests both ParsedDocument and NokogiriParser in one file.
+RSpec/MultipleDescribes:
+  Enabled: false
+
+RSpec/MessageSpies:
   Enabled: false

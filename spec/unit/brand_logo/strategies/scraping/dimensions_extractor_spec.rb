@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 RSpec.describe BrandLogo::Strategies::Scraping::DimensionsExtractor do
-  let(:image_analyzer) { BrandLogo::FakeImageAnalyzer.new(default: { width: 48, height: 48 }) }
-
   subject(:extractor) { described_class.new(image_analyzer: image_analyzer) }
+
+  let(:image_analyzer) { BrandLogo::FakeImageAnalyzer.new(default: { width: 48, height: 48 }) }
 
   def fake_link(attrs = {})
     double('link', **attrs.transform_values { |v| v }).tap do |d|

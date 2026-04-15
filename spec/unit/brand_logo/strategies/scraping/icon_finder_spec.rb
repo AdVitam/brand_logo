@@ -29,7 +29,9 @@ RSpec.describe BrandLogo::Strategies::Scraping::IconFinder do
     end
 
     context 'with an apple-touch-icon' do
-      let(:html) { '<html><head><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180"></head></html>' }
+      let(:html) do
+        '<html><head><link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180"></head></html>'
+      end
 
       it 'finds the icon with correct dimensions' do
         icons = make_finder(html).find
