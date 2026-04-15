@@ -5,8 +5,7 @@ require_relative 'lib/brand_logo/version'
 Gem::Specification.new do |spec|
   spec.name     = 'brand_logo'
   spec.version  = BrandLogo::VERSION
-  spec.authors  = ['Philippe Meyralbe', 'AdVitam']
-  spec.email    = ['philippe.meyralbe@advitam.fr']
+  spec.authors  = ['AdVitam']
 
   spec.summary     = 'Fetch the best logo or icon for any website from its domain'
   spec.description = 'Retrieves brand logos and icons from websites using a chain of strategies: ' \
@@ -20,7 +19,7 @@ Gem::Specification.new do |spec|
     'rubygems_mfa_required' => 'true',
     'homepage_uri'     => spec.homepage,
     'source_code_uri'  => spec.homepage,
-    'changelog_uri'    => "#{spec.homepage}/blob/main/CHANGELOG.md",
+    'changelog_uri'    => "#{spec.homepage}/blob/master/CHANGELOG.md",
     'bug_tracker_uri'  => "#{spec.homepage}/issues"
   }
 
