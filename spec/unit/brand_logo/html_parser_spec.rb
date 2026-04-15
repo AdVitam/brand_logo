@@ -4,7 +4,9 @@ RSpec.describe BrandLogo::ParsedDocument do
   let(:parser) { BrandLogo::NokogiriParser.new }
 
   describe '#css' do
-    let(:doc) { parser.parse('<html><head><link rel="icon" href="/icon.ico"><link rel="icon" href="/icon2.ico"></head></html>') }
+    let(:doc) do
+      parser.parse('<html><head><link rel="icon" href="/icon.ico"><link rel="icon" href="/icon2.ico"></head></html>')
+    end
 
     it 'returns matching elements as an array' do
       elements = doc.css('link[rel="icon"]')

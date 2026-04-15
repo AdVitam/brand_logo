@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
 RSpec.describe BrandLogo::Strategies::DuckduckgoStrategy do
-  let(:config)         { BrandLogo::Config.new }
-  let(:image_analyzer) { BrandLogo::FakeImageAnalyzer.new(default: { width: nil, height: nil }) }
-  let(:http_client)    { BrandLogo::FakeHttpClient.new }
-
   subject(:strategy) do
     described_class.new(
       config: config,
@@ -13,7 +9,11 @@ RSpec.describe BrandLogo::Strategies::DuckduckgoStrategy do
     )
   end
 
-  include_examples 'a favicon strategy'
+  let(:config)         { BrandLogo::Config.new }
+  let(:image_analyzer) { BrandLogo::FakeImageAnalyzer.new(default: { width: nil, height: nil }) }
+  let(:http_client)    { BrandLogo::FakeHttpClient.new }
+
+  it_behaves_like 'a favicon strategy'
 
   describe '#fetch_all' do
     context 'when DuckDuckGo has the icon' do

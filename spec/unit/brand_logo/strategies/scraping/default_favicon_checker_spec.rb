@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 RSpec.describe BrandLogo::Strategies::Scraping::DefaultFaviconChecker do
-  let(:http_client) { BrandLogo::FakeHttpClient.new }
-
   subject(:checker) { described_class.new(http_client: http_client) }
+
+  let(:http_client) { BrandLogo::FakeHttpClient.new }
 
   describe '#check' do
     context 'when the URL responds with 2xx' do

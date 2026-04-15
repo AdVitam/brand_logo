@@ -26,7 +26,7 @@ module BrandLogo
   class Fetcher
     extend T::Sig
 
-    DOMAIN_PATTERN = T.let(/\A[a-z0-9\-\.]+\.[a-z]{2,}\z/i, Regexp)
+    DOMAIN_PATTERN = T.let(/\A[a-z0-9\-.]+\.[a-z]{2,}\z/i, Regexp)
 
     sig do
       params(

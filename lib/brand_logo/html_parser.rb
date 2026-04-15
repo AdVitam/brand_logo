@@ -43,6 +43,7 @@ module BrandLogo
   module HtmlParser
     extend T::Sig
     extend T::Helpers
+
     interface!
 
     sig { abstract.params(html: String).returns(ParsedDocument) }

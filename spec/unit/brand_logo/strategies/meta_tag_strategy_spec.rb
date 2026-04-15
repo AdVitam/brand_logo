@@ -1,11 +1,6 @@
 # frozen_string_literal: true
 
 RSpec.describe BrandLogo::Strategies::MetaTagStrategy do
-  let(:config)         { BrandLogo::Config.new }
-  let(:image_analyzer) { BrandLogo::FakeImageAnalyzer.new(default: { width: 1200, height: 630 }) }
-  let(:http_client)    { BrandLogo::FakeHttpClient.new(responses) }
-  let(:responses)      { {} }
-
   subject(:strategy) do
     described_class.new(
       config: config,
@@ -15,7 +10,12 @@ RSpec.describe BrandLogo::Strategies::MetaTagStrategy do
     )
   end
 
-  include_examples 'a favicon strategy'
+  let(:config)         { BrandLogo::Config.new }
+  let(:image_analyzer) { BrandLogo::FakeImageAnalyzer.new(default: { width: 1200, height: 630 }) }
+  let(:http_client)    { BrandLogo::FakeHttpClient.new(responses) }
+  let(:responses)      { {} }
+
+  it_behaves_like 'a favicon strategy'
 
   describe '#fetch_all' do
     context 'with an og:image meta tag' do

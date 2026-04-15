@@ -10,6 +10,7 @@ module BrandLogo
   module ImageAnalyzer
     extend T::Sig
     extend T::Helpers
+
     interface!
 
     sig { abstract.params(url: String).returns(T::Hash[Symbol, T.nilable(Integer)]) }

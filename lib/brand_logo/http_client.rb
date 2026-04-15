@@ -10,6 +10,7 @@ module BrandLogo
   module HttpClient
     extend T::Sig
     extend T::Helpers
+
     interface!
 
     # Fetches the body of a URL. Returns nil on any failure (network, non-2xx, timeout).
@@ -37,9 +38,9 @@ module BrandLogo
     sig { override.params(url: String).returns(T.nilable(String)) }
     def get_body(url)
       response = HTTP
-        .timeout(connect: @timeout, read: @timeout, write: @timeout)
-        .follow(max_hops: @max_hops)
-        .get(url)
+                 .timeout(connect: @timeout, read: @timeout, write: @timeout)
+                 .follow(max_hops: @max_hops)
+                 .get(url)
       response.status.success? ? response.body.to_s : nil
     rescue StandardError
       nil
@@ -48,8 +49,8 @@ module BrandLogo
     sig { override.params(url: String).returns(T::Boolean) }
     def head_success?(url)
       response = HTTP
-        .timeout(connect: @timeout, read: @timeout, write: @timeout)
-        .head(url)
+                 .timeout(connect: @timeout, read: @timeout, write: @timeout)
+                 .head(url)
       response.status.success?
     rescue StandardError
       false

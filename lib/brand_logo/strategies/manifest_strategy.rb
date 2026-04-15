@@ -18,11 +18,11 @@ module BrandLogo
       extend T::Sig
 
       MIME_TO_FORMAT = T.let({
-        'image/png'     => 'png',
+        'image/png' => 'png',
         'image/svg+xml' => 'svg',
-        'image/jpeg'    => 'jpg',
-        'image/webp'    => 'webp',
-        'image/gif'     => 'gif'
+        'image/jpeg' => 'jpg',
+        'image/webp' => 'webp',
+        'image/gif' => 'gif'
       }.freeze, T::Hash[String, String])
 
       sig do

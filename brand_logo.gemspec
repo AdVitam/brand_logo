@@ -17,10 +17,10 @@ Gem::Specification.new do |spec|
 
   spec.metadata = {
     'rubygems_mfa_required' => 'true',
-    'homepage_uri'     => spec.homepage,
-    'source_code_uri'  => spec.homepage,
-    'changelog_uri'    => "#{spec.homepage}/blob/master/CHANGELOG.md",
-    'bug_tracker_uri'  => "#{spec.homepage}/issues"
+    'homepage_uri' => spec.homepage,
+    'source_code_uri' => spec.homepage,
+    'changelog_uri' => "#{spec.homepage}/blob/master/CHANGELOG.md",
+    'bug_tracker_uri' => "#{spec.homepage}/issues"
   }
 
   spec.files = Dir['lib/**/*', 'LICENSE.txt', 'README.md', 'CHANGELOG.md']
