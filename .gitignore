@@ -1,0 +1,4 @@
+coverage/
+pkg/
+.DS_Store
+Gemfile*.lock
