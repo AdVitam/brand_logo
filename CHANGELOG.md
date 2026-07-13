@@ -3,6 +3,12 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+
+- Bump simplecov to 1.0.0, migrate `add_filter` to `skip`
+
 ## [1.0.0] - 2026-04-15
 
 First public release under the name `brand_logo`.
