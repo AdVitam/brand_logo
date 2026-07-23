@@ -8,8 +8,10 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -21,7 +23,8 @@ jobs:
       - name: Build gem
         run: gem build brand_logo.gemspec
 
+      # Credentials expire 15 minutes after this step, so build first.
+      - uses: rubygems/configure-rubygems-credentials@6861877652452567c1a007a50badad3d316fc9ba
+
       - name: Push to RubyGems
         run: gem push brand_logo-*.gem
-        env:
-          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
