@@ -3,10 +3,11 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [1.0.1] - 2026-07-23
 
 ### Changed
 
+- Publish to RubyGems via trusted publishing (OIDC) instead of a long-lived API key
 - Bump simplecov to 1.0.0, migrate `add_filter` to `skip`
 
 ## [1.0.0] - 2026-04-15
