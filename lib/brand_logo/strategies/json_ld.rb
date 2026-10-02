@@ -29,7 +29,7 @@ module BrandLogo
         rescue JSON::ParserError => e
           Logging.logger.warn("JsonLd: invalid JSON at #{page.url}: #{e.message}")
         end
-        logos.filter_map { |logo| build(page, logo) }.uniq(&:url)
+        logos.filter_map { |logo| build(page, logo) }
       end
 
       private
@@ -71,7 +71,7 @@ module BrandLogo
       sig { params(logo: T.untyped, url: String).returns(T.nilable(Symbol)) }
       def format_of(logo, url)
         mime = logo['encodingFormat'] if logo.is_a?(::Hash)
-        ImageFormat.from_mime(mime.is_a?(String) ? mime : nil) || ImageFormat.from_url(url)
+        ImageFormat.from_mime(mime) || ImageFormat.from_url(url)
       end
 
       sig { params(logo: T.untyped).returns(Dimensions) }

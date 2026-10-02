@@ -8,7 +8,10 @@ module BrandLogo
     KIND_TIERS = T.let({
       mask: 3, monochrome: 3, social: 2, tile: 1
     }.freeze, T::Hash[Symbol, Integer])
-    UNUSABLE_KINDS = T.let(%i[mask monochrome social].freeze, T::Array[Symbol])
+    UNUSABLE_TIER = 2
+    SCHEMES = T.let({
+      dark: /prefers-color-scheme\s*:\s*dark/i, light: /prefers-color-scheme\s*:\s*light/i
+    }.freeze, T::Hash[Symbol, Regexp])
     DEFAULT_GOOD_SIZE = 128
     MAX_ASPECT_RATIO = 1.2
 
@@ -27,7 +30,7 @@ module BrandLogo
 
     sig { params(icon: Icon).returns(T::Boolean) }
     def usable?(icon)
-      valid?(icon) && !UNUSABLE_KINDS.include?(icon.kind)
+      valid?(icon) && KIND_TIERS.fetch(icon.kind, 0) < UNUSABLE_TIER
     end
 
     sig { params(icon: Icon).returns(T::Boolean) }
@@ -63,7 +66,7 @@ module BrandLogo
     sig { params(icon: Icon).returns(Integer) }
     def scheme_penalty(icon)
       wanted = @config.color_scheme
-      return dark_media?(icon) ? 1 : 0 unless wanted
+      return media_mentions?(icon, :dark) ? 1 : 0 unless wanted
 
       opposite = wanted == :dark ? :light : :dark
       return 0 if media_mentions?(icon, wanted)
@@ -71,14 +74,9 @@ module BrandLogo
       media_mentions?(icon, opposite) ? 2 : 1
     end
 
-    sig { params(icon: Icon).returns(T::Boolean) }
-    def dark_media?(icon)
-      media_mentions?(icon, :dark)
-    end
-
     sig { params(icon: Icon, scheme: Symbol).returns(T::Boolean) }
     def media_mentions?(icon, scheme)
-      /prefers-color-scheme\s*:\s*#{scheme}/i.match?(icon.media.to_s)
+      SCHEMES.fetch(scheme).match?(icon.media.to_s)
     end
 
     sig { params(icon: Icon).returns(T::Array[Integer]) }

@@ -100,11 +100,10 @@ RSpec.describe BrandLogo::Strategies::LinkTag do
     expect(list.size).to eq(2)
   end
 
-  it 'does not add /favicon.ico when a tag already declares it' do
+  it 'lists a declared /favicon.ico before the implicit one so its sizes win the dedup' do
     list = icons('<link rel="icon" href="/favicon.ico" sizes="32x32">')
 
-    expect(list.size).to eq(1)
-    expect(list.first.width).to eq(32)
+    expect(list.uniq(&:url).map(&:width)).to eq([32])
   end
 
   it 'skips links without href or with unsupported schemes' do

@@ -28,11 +28,9 @@ module BrandLogo
 
     FASTIMAGE_TYPES = T.let({ jpeg: :jpg, cur: :ico }.freeze, T::Hash[Symbol, Symbol])
 
-    sig { params(mime: T.nilable(String)).returns(T.nilable(Symbol)) }
+    sig { params(mime: T.untyped).returns(T.nilable(Symbol)) }
     def self.from_mime(mime)
-      return nil if mime.nil?
-
-      MIME_TYPES[mime.split(';').first.to_s.strip.downcase]
+      MIME_TYPES[mime.to_s.split(';').first.to_s.strip.downcase]
     end
 
     sig { params(url: String).returns(T.nilable(Symbol)) }

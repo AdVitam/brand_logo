@@ -25,7 +25,7 @@ module BrandLogo
         document = response && parse(response)
         return [] unless response && document
 
-        document.xpath('//*').filter_map { |node| build(node, response.url) }.uniq(&:url)
+        document.xpath('//*').filter_map { |node| build(node, response.url) }
       end
 
       private

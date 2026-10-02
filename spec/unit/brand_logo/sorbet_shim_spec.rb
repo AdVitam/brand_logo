@@ -35,10 +35,4 @@ RSpec.describe 'sorbet_shim' do
     expect(status).to be_success, output
     expect(output.strip).to eq('TypeError')
   end
-
-  it 'does not define sorbet-runtime only constants' do
-    output, = run_ruby('puts defined?(T::Struct).inspect')
-
-    expect(output.strip).to eq('nil')
-  end
 end

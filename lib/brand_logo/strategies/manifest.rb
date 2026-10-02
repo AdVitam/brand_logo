@@ -24,7 +24,7 @@ module BrandLogo
         return [] unless response
 
         icons = parse(response)
-        icons.filter_map { |entry| build(entry, response.url) }.uniq(&:url)
+        icons.filter_map { |entry| build(entry, response.url) }
       end
 
       private
@@ -46,12 +46,11 @@ module BrandLogo
         url = UrlResolver.resolve(entry['src'], manifest_url) if entry['src'].is_a?(String)
         return nil unless url
 
-        type = entry['type']
         Icon.new(
           url: url,
           source: :manifest,
           kind: kind(entry['purpose']),
-          format: ImageFormat.from_mime(type.is_a?(String) ? type : nil) || ImageFormat.from_url(url),
+          format: ImageFormat.from_mime(entry['type']) || ImageFormat.from_url(url),
           dimensions: Dimensions.parse(entry['sizes'])
         )
       end

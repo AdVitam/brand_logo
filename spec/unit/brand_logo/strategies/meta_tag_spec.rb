@@ -53,9 +53,8 @@ RSpec.describe BrandLogo::Strategies::MetaTag do
     expect(list.map { |icon| icon.dimensions.width }).to eq([1200, nil])
   end
 
-  it 'strips content, ignores empty values and deduplicates' do
-    list = icons('<meta property="og:image" content="  /a.png "><meta name="twitter:image" content="/a.png">' \
-                 '<meta property="og:image" content="  ">')
+  it 'strips content and ignores empty values' do
+    list = icons('<meta property="og:image" content="  /a.png "><meta property="og:image" content="  ">')
 
     expect(list.map(&:url)).to eq(['https://example.com/a.png'])
   end

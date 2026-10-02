@@ -27,7 +27,7 @@ module BrandLogo
       sig { override.params(context: Context).returns(T::Array[Icon]) }
       def call(context)
         page = context.page
-        page ? collect(page).uniq(&:url) : []
+        page ? collect(page) : []
       end
 
       private

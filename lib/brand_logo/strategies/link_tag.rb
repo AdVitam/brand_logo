@@ -19,10 +19,7 @@ module BrandLogo
         page = context.page
         return [] unless page
 
-        icons = page.document.css('link[rel]').filter_map { |link| build(page, link) }
-        default = favicon(page)
-        icons << default unless icons.any? { |icon| icon.url == default.url }
-        icons.uniq(&:url)
+        page.document.css('link[rel]').filter_map { |link| build(page, link) } << favicon(page)
       end
 
       private
