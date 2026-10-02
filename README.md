@@ -47,7 +47,7 @@ Strategies run in stages; the lookup stops as soon as the best icon so far is go
 |---|---|---|
 | document | `LinkTag` (`<link rel="icon" / "apple-touch-icon" / "mask-icon">`, `/favicon.ico`), `JsonLd` (schema.org `Organization#logo`), `MetaTag` (`og:image`, `og:logo`, `twitter:image`, `msapplication-TileImage`) | 1 request for the homepage |
 | remote | `Manifest` (PWA `icons[]`), `Browserconfig` (`msapplication-config`) | 1 request each, in parallel |
-| external | `Google`, `DuckDuckGo` | only when nothing else is valid |
+| external | `Google`, `DuckDuckGo` | only when nothing else is usable (social banners, mask and monochrome icons are not) |
 
 Ranking: Safari mask icons, monochrome icons and social banners come last; then the `prefer`
 setting applies (square icons first by default, SVG over raster, larger first), with optional

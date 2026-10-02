@@ -19,7 +19,7 @@ module BrandLogo
       icons = T.let([], T::Array[Icon])
       STAGES.each do |stage|
         break if @context.deadline.expired?
-        next if stage == :external && icons.any?
+        next if skip?(stage, icons)
 
         icons = run(stage, icons)
         winner = icons.first
@@ -41,6 +41,11 @@ module BrandLogo
     end
 
     private
+
+    sig { params(stage: Symbol, icons: T::Array[Icon]).returns(T::Boolean) }
+    def skip?(stage, icons)
+      stage == :external && icons.any? { |icon| @ranker.usable?(icon) }
+    end
 
     sig { params(stage: Symbol, previous: T::Array[Icon]).returns(T::Array[Icon]) }
     def run(stage, previous)

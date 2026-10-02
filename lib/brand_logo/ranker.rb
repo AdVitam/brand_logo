@@ -26,8 +26,13 @@ module BrandLogo
     end
 
     sig { params(icon: Icon).returns(T::Boolean) }
+    def usable?(icon)
+      valid?(icon) && !UNUSABLE_KINDS.include?(icon.kind)
+    end
+
+    sig { params(icon: Icon).returns(T::Boolean) }
     def good_enough?(icon)
-      return false unless valid?(icon) && !UNUSABLE_KINDS.include?(icon.kind)
+      return false unless usable?(icon)
       return false if @config.prefer == :square && non_square?(icon)
 
       icon.svg? || icon.dimensions.side >= (@config.target_size || DEFAULT_GOOD_SIZE)

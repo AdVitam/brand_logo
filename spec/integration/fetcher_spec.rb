@@ -89,6 +89,20 @@ RSpec.describe BrandLogo::Fetcher do
       end
     end
 
+    context 'when the page only exposes a social banner' do
+      let(:responses) do
+        {
+          'https://example.com' => html('<meta property="og:image" content="/banner.png">'),
+          'https://example.com/banner.png' => ImageFixtures.png(1200, 630),
+          duckduckgo => ImageFixtures.ico(32, 32)
+        }
+      end
+
+      it 'still asks the external services' do
+        expect(fetcher.fetch('example.com').source).to eq(:duckduckgo)
+      end
+    end
+
     context 'when external fallbacks are disabled' do
       let(:config) { BrandLogo::Config.new(cache: nil, external_fallbacks: []) }
       let(:responses) { { duckduckgo => ImageFixtures.ico(32, 32) } }
