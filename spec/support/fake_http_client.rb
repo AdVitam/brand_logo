@@ -1,11 +1,6 @@
 # frozen_string_literal: true
 
 module BrandLogo
-  # In-memory Http::Client. Values may be a String body, an Http::Response, a Proc returning either, or nil.
-  # Every requested URL is recorded in #requests so specs can assert request counts.
-  #
-  #   FakeHttpClient.new('https://example.com' => '<html>…</html>',
-  #                      'https://example.com/icon.png' => ImageFixtures.png(64, 64))
   class FakeHttpClient
     include Http::Client
 

@@ -12,7 +12,6 @@ require_relative '../lib/brand_logo'
 Dir[File.join(__dir__, 'support', '**', '*.rb')].each { |f| require f }
 
 RSpec.configure do |config|
-  # Real network only for :e2e examples, which run with E2E=1.
   config.filter_run_excluding :e2e unless ENV['E2E']
   config.before do |example|
     example.metadata[:e2e] ? WebMock.allow_net_connect! : WebMock.disable_net_connect!

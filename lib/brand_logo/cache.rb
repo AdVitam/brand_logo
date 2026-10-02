@@ -2,8 +2,7 @@
 # typed: strict
 
 module BrandLogo
-  # Any object responding to read(key) and write(key, value, expires_in:) works as a cache,
-  # e.g. Rails.cache. Memory is the thread-safe in-process default.
+  # Duck-typed on read / write(expires_in:) so Rails.cache can be passed as is.
   module Cache
     class Memory
       extend T::Sig

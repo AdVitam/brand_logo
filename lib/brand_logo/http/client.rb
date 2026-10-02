@@ -9,8 +9,8 @@ module BrandLogo
 
       interface!
 
-      # Returns the response for a 2xx status, nil otherwise (network error, blocked URL, non-2xx, deadline).
-      # `max_bytes` caps how much of the body is read; `range` sends a Range header (servers may ignore it).
+      # Never raises: any failure is nil, so strategies treat it as "no icon".
+      # `max_bytes` still caps the read because servers may ignore `range`.
       sig do
         abstract.params(
           url: String,
