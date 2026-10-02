@@ -1,34 +1,55 @@
 # frozen_string_literal: true
 # typed: strict
 
-require 'sorbet-runtime'
-
 module BrandLogo
-  # Represents a brand_logo icon with its URL, dimensions and format
-  # Used to store and return brand_logo information across the gem
-  class Icon
+  Icon = Data.define(:url, :format, :dimensions, :source, :kind, :media) do
     extend T::Sig
-
-    sig { returns(String) }
-    attr_reader :url
-
-    sig { returns(T::Hash[Symbol, T.nilable(Integer)]) }
-    attr_reader :dimensions
-
-    sig { returns(String) }
-    attr_reader :format
 
     sig do
       params(
         url: String,
-        dimensions: T::Hash[Symbol, T.nilable(Integer)],
-        format: String
+        source: Symbol,
+        format: T.nilable(Symbol),
+        dimensions: Dimensions,
+        kind: Symbol,
+        media: T.nilable(String)
       ).void
     end
-    def initialize(url:, dimensions:, format:)
-      @url = url
-      @dimensions = dimensions
-      @format = format
+    def initialize(url:, source:, format: nil, dimensions: Dimensions.new, kind: :icon, media: nil)
+      super
+    end
+
+    sig { params(hash: T::Hash[T.any(String, Symbol), T.untyped]).returns(Icon) }
+    def self.from_h(hash)
+      data = hash.transform_keys(&:to_sym)
+      new(
+        url: data.fetch(:url),
+        source: data.fetch(:source).to_sym,
+        format: data[:format]&.to_sym,
+        dimensions: Dimensions.new(width: data[:width], height: data[:height]),
+        kind: data.fetch(:kind, :icon).to_sym,
+        media: data[:media]
+      )
+    end
+
+    sig { returns(T.nilable(Integer)) }
+    def width
+      dimensions.width
+    end
+
+    sig { returns(T.nilable(Integer)) }
+    def height
+      dimensions.height
+    end
+
+    sig { returns(T::Boolean) }
+    def svg?
+      format == :svg
+    end
+
+    sig { returns(T::Hash[Symbol, T.untyped]) }
+    def to_h
+      { url: url, format: format, width: width, height: height, source: source, kind: kind, media: media }
     end
   end
 end

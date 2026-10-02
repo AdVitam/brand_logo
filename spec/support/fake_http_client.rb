@@ -1,32 +1,30 @@
 # frozen_string_literal: true
 
 module BrandLogo
-  # Test double for HttpClient — returns responses from a predefined Hash.
-  # Fully implements the HttpClient interface without making network calls.
+  # In-memory Http::Client. Values may be a String body, an Http::Response, a Proc returning either, or nil.
+  # Every requested URL is recorded in #requests so specs can assert request counts.
   #
-  # Usage:
-  #   client = FakeHttpClient.new(
-  #     'https://example.com' => '<html>...</html>',  # get_body returns the string
-  #     'https://example.com/favicon.ico' => :head_ok  # head_success? returns true
-  #   )
+  #   FakeHttpClient.new('https://example.com' => '<html>…</html>',
+  #                      'https://example.com/icon.png' => ImageFixtures.png(64, 64))
   class FakeHttpClient
-    include HttpClient
+    include Http::Client
 
-    # :head_ok       → head_success? returns true, get_body returns nil
-    # String         → get_body returns the string, head_success? returns true
-    # nil / missing  → both return falsy
+    attr_reader :requests
+
     def initialize(responses = {})
       @responses = responses
+      @requests = []
+      @lock = Mutex.new
     end
 
-    def get_body(url)
-      resp = @responses[url]
-      resp.is_a?(String) ? resp : nil
-    end
-
-    def head_success?(url)
-      resp = @responses[url]
-      resp == :head_ok || resp.is_a?(String)
+    def get(url, max_bytes:, **)
+      @lock.synchronize { @requests << url }
+      value = @responses[url]
+      value = value.call if value.is_a?(Proc)
+      case value
+      when Http::Response then value
+      when String then Http::Response.new(url: url, body: value.byteslice(0, max_bytes).to_s)
+      end
     end
   end
 end

@@ -1,109 +1,106 @@
 # frozen_string_literal: true
 # typed: strict
 
-require 'sorbet-runtime'
-
 module BrandLogo
-  # Entry point for brand_logo retrieval.
-  #
-  # Composes a chain of strategies tried in order until one finds a valid icon.
-  # Dependencies (HTTP client, HTML parser, image analyzer) are instantiated once
-  # and shared across all strategies.
-  #
-  # Usage:
-  #   # Default configuration
-  #   icon = BrandLogo::Fetcher.new.fetch('github.com')
-  #
-  #   # Custom config
-  #   config = BrandLogo::Config.new(min_dimensions: { width: 32, height: 32 }, timeout: 5)
-  #   icon = BrandLogo::Fetcher.new(config: config).fetch('github.com')
-  #
-  #   # Custom strategy chain (OCP)
-  #   fetcher = BrandLogo::Fetcher.new(strategies: [MyCustomStrategy.new(config: config)])
-  #
-  #   # All icons from all strategies
-  #   icons = BrandLogo::Fetcher.new.fetch_all('github.com')
   class Fetcher
     extend T::Sig
 
-    DOMAIN_PATTERN = T.let(/\A[a-z0-9\-.]+\.[a-z]{2,}\z/i, Regexp)
+    CACHE_NAMESPACE = 'brand_logo/v2'
+
+    sig { returns(Config) }
+    attr_reader :config
 
     sig do
       params(
-        config: T.nilable(Config),
-        strategies: T.nilable(T::Array[Strategies::BaseStrategy])
+        config: Config,
+        http: T.nilable(Http::Client),
+        strategies: T.nilable(T::Array[Strategies::Base])
       ).void
     end
-    def initialize(config: nil, strategies: nil)
-      @config         = T.let(config || Config.new, Config)
-      @http_client    = T.let(RealHttpClient.new(@config), HttpClient)
-      @image_analyzer = T.let(FastimageAnalyzer.new, ImageAnalyzer)
-      @html_parser    = T.let(NokogiriParser.new, HtmlParser)
-      @strategies     = T.let(strategies || build_default_strategies, T::Array[Strategies::BaseStrategy])
+    def initialize(config: Config.new, http: nil, strategies: nil)
+      @config = config
+      @http = T.let(http || Http::RealClient.new(config), Http::Client)
+      @strategies = T.let(strategies || default_strategies, T::Array[Strategies::Base])
+      @ranker = T.let(Ranker.new(config), Ranker)
+      strategy_names = @strategies.map { |strategy| T.cast(strategy, Object).class.name }
+      @cache_digest = T.let(Digest::SHA256.hexdigest([config.cache_digest, strategy_names].inspect)[0, 12].to_s, String)
     end
 
-    # Returns the best icon found for the domain across all strategies.
-    # Raises NoIconFoundError if no strategy finds a valid icon.
-    sig { params(domain: String).returns(Icon) }
-    def fetch(domain)
-      validate_domain!(domain)
-      BrandLogo::Logging.logger.debug("Fetching brand_logo for: #{domain}")
+    sig { params(input: String).returns(T.nilable(Icon)) }
+    def fetch(input)
+      fetch_domain(Domain.normalize(input))
+    end
 
-      @strategies.each do |strategy|
-        BrandLogo::Logging.logger.debug("Trying #{strategy.class.name}")
-        icon = strategy.fetch(domain)
-        return icon if icon
+    sig { params(input: String).returns(Icon) }
+    def fetch!(input)
+      fetch(input) || raise(NoIconFoundError, "No icon found for #{input.inspect}")
+    end
+
+    sig { params(input: String).returns(T::Array[Icon]) }
+    def fetch_all(input)
+      domain = Domain.normalize(input)
+      stored = cached("all/#{domain}") do
+        lookup = new_lookup(domain)
+        icons = lookup.all
+        [icons.map(&:to_h), ttl_for(found: !icons.empty?, lookup: lookup)]
       end
-
-      raise NoIconFoundError, "No brand_logo found for #{domain}"
+      Array(stored).map { |hash| Icon.from_h(hash) }
     end
 
-    # Returns all icons found across every strategy, deduplicated by URL.
-    sig { params(domain: String).returns(T::Array[Icon]) }
-    def fetch_all(domain)
-      validate_domain!(domain)
-
-      @strategies
-        .flat_map { |strategy| strategy.fetch_all(domain) }
-        .uniq(&:url)
+    sig { params(inputs: T::Array[String]).returns(T::Hash[String, T.nilable(Icon)]) }
+    def fetch_many(inputs)
+      domains = inputs.to_h { |input| [input, Domain.normalize(input)] }
+      unique = domains.values.uniq
+      icons = unique.zip(Concurrency.map(unique, size: @config.concurrency) { |domain| fetch_domain(domain) }).to_h
+      domains.transform_values { |domain| icons[domain] }
     end
 
     private
 
-    sig { params(domain: String).void }
-    def validate_domain!(domain)
-      return if domain.match?(DOMAIN_PATTERN)
-
-      raise ValidationError, "Invalid domain: #{domain.inspect}"
+    sig { params(domain: String).returns(T.nilable(Icon)) }
+    def fetch_domain(domain)
+      stored = cached("best/#{domain}") do
+        lookup = new_lookup(domain)
+        icon = lookup.best
+        [icon ? icon.to_h : false, ttl_for(found: !icon.nil?, lookup: lookup)]
+      end
+      stored ? Icon.from_h(stored) : nil
     end
 
-    sig { returns(T::Array[Strategies::BaseStrategy]) }
-    def build_default_strategies
-      [
-        Strategies::ScrapingStrategy.new(
-          config: @config,
-          http_client: @http_client,
-          html_parser: @html_parser,
-          image_analyzer: @image_analyzer
-        ),
-        Strategies::MetaTagStrategy.new(
-          config: @config,
-          http_client: @http_client,
-          html_parser: @html_parser,
-          image_analyzer: @image_analyzer
-        ),
-        Strategies::ManifestStrategy.new(
-          config: @config,
-          http_client: @http_client,
-          html_parser: @html_parser,
-          image_analyzer: @image_analyzer
-        ),
-        Strategies::DuckduckgoStrategy.new(
-          config: @config,
-          http_client: @http_client,
-          image_analyzer: @image_analyzer
-        )
-      ]
+    sig { params(key: String, block: T.proc.returns([T.untyped, T.nilable(Integer)])).returns(T.untyped) }
+    def cached(key, &block)
+      cache = @config.cache
+      return yield.first unless cache
+
+      full_key = "#{CACHE_NAMESPACE}/#{key}/#{@cache_digest}"
+      stored = cache.read(full_key)
+      return stored unless stored.nil?
+
+      value, ttl = yield
+      cache.write(full_key, value, expires_in: ttl) if ttl&.positive?
+      value
+    end
+
+    # A lookup cut short by the deadline says little about the site, so it is never cached.
+    sig { params(found: T::Boolean, lookup: Lookup).returns(T.nilable(Integer)) }
+    def ttl_for(found:, lookup:)
+      return nil if lookup.timed_out?
+
+      found ? @config.cache_ttl : @config.negative_cache_ttl
+    end
+
+    sig { params(domain: String).returns(Lookup) }
+    def new_lookup(domain)
+      context = Context.new(domain: domain, config: @config, http: @http)
+      Lookup.new(context: context, strategies: @strategies, ranker: @ranker)
+    end
+
+    sig { returns(T::Array[Strategies::Base]) }
+    def default_strategies
+      document = [Strategies::LinkTag.new, Strategies::JsonLd.new, Strategies::MetaTag.new]
+      remote = [Strategies::Manifest.new, Strategies::Browserconfig.new]
+      external = { google: Strategies::Google, duckduckgo: Strategies::Duckduckgo }
+      document + remote + @config.external_fallbacks.map { |name| external.fetch(name).new }
     end
   end
 end
