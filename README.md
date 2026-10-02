@@ -3,12 +3,24 @@
 [![Gem Version](https://badge.fury.io/rb/brand_logo.svg)](https://badge.fury.io/rb/brand_logo)
 [![Test](https://github.com/AdVitam/brand_logo/actions/workflows/main.yml/badge.svg)](https://github.com/AdVitam/brand_logo/actions/workflows/main.yml)
 
-Fetch the best logo or icon for any website from its domain.
+**Give it a domain, get back the best logo that site has to offer.**
 
-`brand_logo` collects candidates from the page (favicon links, JSON-LD logos, Open Graph /
-Twitter / Windows tile meta tags), the PWA manifest and `browserconfig.xml`, then from Google
-and DuckDuckGo as a last resort. Every candidate is downloaded once (first 64 KB), its real
-format and size are read, dead links and non-images are dropped, and the rest are ranked.
+```ruby
+BrandLogo::Fetcher.new.fetch('github.com').url # => "https://github.com/fluidicon.png"
+```
+
+Perfect for company directories, CRM enrichment, link previews or any list of brands that
+deserves real logos instead of blurry 16 px favicons.
+
+- **The right icon, not the first one** — favicon links, `apple-touch-icon`, schema.org JSON-LD
+  logos, Open Graph tags, PWA manifest and `browserconfig.xml` are compared by their *real*
+  size and format. Square, crisp and SVG wins; Safari mask icons and social banners lose.
+- **Fast** — one homepage request, image probes run in parallel and read 64 KB at most,
+  the lookup stops as soon as a good icon is found, and results are cached (`Rails.cache` ready).
+- **Never empty-handed** — Google and DuckDuckGo favicon services as a last resort.
+- **Safe on untrusted input** — SSRF protection on every redirect, bounded timeouts and body sizes.
+- **Tunable** — prefer square, largest or SVG, target a size, pick dark-mode icons.
+- **Light** — no `sorbet-runtime` dependency, thread-safe, batch lookups with `fetch_many`.
 
 ## Installation
 
@@ -37,21 +49,6 @@ fetcher.fetch_many(%w[github.com ruby-lang.org]) # => { 'github.com' => Icon, 'r
 ```
 
 A `Fetcher` is thread-safe and meant to be reused (it holds the cache).
-
-## How the best icon is chosen
-
-Strategies run in stages; the lookup stops as soon as the best icon so far is good enough
-(an SVG, or a raster at least `target_size` — 128 px by default — and square when `prefer: :square`):
-
-| Stage | Strategies | Cost |
-|---|---|---|
-| document | `LinkTag` (`<link rel="icon" / "apple-touch-icon" / "mask-icon">`, `/favicon.ico`), `JsonLd` (schema.org `Organization#logo`), `MetaTag` (`og:image`, `og:logo`, `twitter:image`, `msapplication-TileImage`) | 1 request for the homepage |
-| remote | `Manifest` (PWA `icons[]`), `Browserconfig` (`msapplication-config`) | 1 request each, in parallel |
-| external | `Google`, `DuckDuckGo` | only when nothing else is usable (social banners, mask and monochrome icons are not) |
-
-Ranking: Safari mask icons, monochrome icons and social banners come last; then the `prefer`
-setting applies (square icons first by default, SVG over raster, larger first), with optional
-`target_size` and `color_scheme` matching on the `media` attribute.
 
 ## Configuration
 

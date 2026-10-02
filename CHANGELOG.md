@@ -3,7 +3,7 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [2.0.0] - Unreleased
+## [2.0.0] - 2026-10-02
 
 Rewrite focused on picking the right icon, speed and safety. Breaking changes: see *Upgrading*.
 
