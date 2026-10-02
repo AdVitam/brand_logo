@@ -27,5 +27,50 @@ jobs:
       - name: RSpec
         run: bundle exec rspec
 
+  lint:
+    runs-on: ubuntu-latest
+    name: Lint, types and gem build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+
       - name: Rubocop
         run: bundle exec rubocop
+
+      - name: Sorbet
+        run: bundle exec srb tc
+
+      - name: Build gem
+        run: gem build brand_logo.gemspec
+
+      - name: Assert no sorbet-runtime runtime dependency
+        run: |
+          if gem spec brand_logo-*.gem dependencies | grep -q sorbet; then
+            echo "sorbet must not be a runtime dependency" >&2
+            exit 1
+          fi
+
+  shim:
+    runs-on: ubuntu-latest
+    name: Without sorbet-runtime
+
+    env:
+      BUNDLE_GEMFILE: gemfiles/no_sorbet.gemfile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+
+      - name: RSpec
+        run: bundle exec rspec

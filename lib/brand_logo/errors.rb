@@ -3,8 +3,6 @@
 
 module BrandLogo
   class Error < StandardError; end
-  class FetchError < Error; end
-  class ParseError < Error; end
   class ValidationError < Error; end
-  class NoIconFoundError < FetchError; end
+  class NoIconFoundError < Error; end
 end

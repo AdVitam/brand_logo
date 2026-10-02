@@ -1,37 +1,39 @@
 # frozen_string_literal: true
 # typed: strict
 
-require 'sorbet-runtime'
+require_relative 'brand_logo/sorbet'
 
-# Foundation
 require_relative 'brand_logo/version'
 require_relative 'brand_logo/errors'
-require_relative 'brand_logo/config'
 require_relative 'brand_logo/logging'
-
-# Interfaces & implementations
-require_relative 'brand_logo/http_client'
-require_relative 'brand_logo/image_analyzer'
-require_relative 'brand_logo/html_parser'
-
-# Domain model
+require_relative 'brand_logo/concurrency'
+require_relative 'brand_logo/cache'
+require_relative 'brand_logo/dimensions'
+require_relative 'brand_logo/image_format'
 require_relative 'brand_logo/icon'
+require_relative 'brand_logo/config'
+require_relative 'brand_logo/deadline'
+require_relative 'brand_logo/domain'
 
-# Strategies — base must be loaded before subclasses
-require_relative 'brand_logo/strategies/base_strategy'
+require_relative 'brand_logo/http/response'
+require_relative 'brand_logo/http/client'
+require_relative 'brand_logo/http/url_guard'
+require_relative 'brand_logo/http/real_client'
 
-# Scraping utilities (loaded before strategies that use them)
-require_relative 'brand_logo/strategies/scraping/format_extractor'
-require_relative 'brand_logo/strategies/scraping/url_normalizer'
-require_relative 'brand_logo/strategies/scraping/dimensions_extractor'
-require_relative 'brand_logo/strategies/scraping/default_favicon_checker'
-require_relative 'brand_logo/strategies/scraping/icon_finder'
+require_relative 'brand_logo/url_resolver'
+require_relative 'brand_logo/image_probe'
+require_relative 'brand_logo/page'
+require_relative 'brand_logo/context'
+require_relative 'brand_logo/ranker'
 
-# Concrete strategies
-require_relative 'brand_logo/strategies/scraping_strategy'
-require_relative 'brand_logo/strategies/duckduckgo_strategy'
-require_relative 'brand_logo/strategies/meta_tag_strategy'
-require_relative 'brand_logo/strategies/manifest_strategy'
+require_relative 'brand_logo/strategies/base'
+require_relative 'brand_logo/strategies/link_tag'
+require_relative 'brand_logo/strategies/json_ld'
+require_relative 'brand_logo/strategies/meta_tag'
+require_relative 'brand_logo/strategies/manifest'
+require_relative 'brand_logo/strategies/browserconfig'
+require_relative 'brand_logo/strategies/google'
+require_relative 'brand_logo/strategies/duckduckgo'
 
-# Entry point
+require_relative 'brand_logo/lookup'
 require_relative 'brand_logo/fetcher'

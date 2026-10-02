@@ -1,8 +1,13 @@
 pre-commit:
-  parallel: true
   commands:
     rubocop:
       glob: "*.rb"
       run: bundle exec rubocop -A {staged_files} && git add {staged_files}
+
+pre-push:
+  parallel: true
+  commands:
     rspec:
       run: bundle exec rspec
+    sorbet:
+      run: bundle exec srb tc

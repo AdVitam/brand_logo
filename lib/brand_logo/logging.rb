@@ -2,15 +2,9 @@
 # typed: strict
 
 require 'logger'
-require 'sorbet-runtime'
+require_relative 'sorbet'
 
 module BrandLogo
-  # Centralized logging for the gem.
-  # Replaces the DebugLogger module's debug boolean pattern.
-  #
-  # Usage:
-  #   BrandLogo::Logging.logger.level = Logger::DEBUG  # enable verbose output
-  #   BrandLogo::Logging.logger = MyCustomLogger.new   # inject custom logger
   module Logging
     extend T::Sig
 

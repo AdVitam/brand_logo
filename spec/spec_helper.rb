@@ -12,10 +12,9 @@ require_relative '../lib/brand_logo'
 Dir[File.join(__dir__, 'support', '**', '*.rb')].each { |f| require f }
 
 RSpec.configure do |config|
-  # Disable real network calls in all tests — use FakeHttpClient instead.
-  # Tag tests with :e2e to opt out: describe '...', :e2e do
+  config.filter_run_excluding :e2e unless ENV['E2E']
   config.before do |example|
-    WebMock.disable_net_connect! unless example.metadata[:e2e]
+    example.metadata[:e2e] ? WebMock.allow_net_connect! : WebMock.disable_net_connect!
   end
 
   config.expect_with :rspec do |expectations|

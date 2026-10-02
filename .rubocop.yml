@@ -9,6 +9,7 @@ AllCops:
   Exclude:
     - 'vendor/**/*'
     - 'coverage/**/*'
+    - 'bin/tapioca'
 
 # Frozen string literals required in all files
 Style/Documentation:
@@ -47,6 +48,7 @@ RSpec/NestedGroups:
 RSpec/DescribeClass:
   Exclude:
     - 'spec/integration/**/*'
+    - 'spec/unit/brand_logo/sorbet_shim_spec.rb'
 
 RSpec/SpecFilePathFormat:
   Enabled: false
@@ -70,3 +72,11 @@ RSpec/MultipleDescribes:
 
 RSpec/MessageSpies:
   Enabled: false
+
+# Sorbet sigs must name the block parameter they type.
+Naming/BlockForwarding:
+  EnforcedStyle: explicit
+
+# Data-based value objects take one keyword per member.
+Metrics/ParameterLists:
+  CountKeywordArgs: false
