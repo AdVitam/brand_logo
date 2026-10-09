@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 # typed: strict
 
-require 'json'
-
 module BrandLogo
   module Strategies
     class Manifest
@@ -31,7 +29,7 @@ module BrandLogo
 
       sig { params(response: Http::Response).returns(T::Array[T.untyped]) }
       def parse(response)
-        data = JSON.parse(response.body)
+        data = LenientJson.parse(response.body)
         icons = data['icons'] if data.is_a?(::Hash)
         icons.is_a?(::Array) ? icons : []
       rescue JSON::ParserError => e

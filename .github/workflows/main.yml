@@ -74,3 +74,22 @@ jobs:
 
       - name: RSpec
         run: bundle exec rspec
+
+  minimum:
+    runs-on: ubuntu-latest
+    name: Minimum dependency versions
+
+    env:
+      BUNDLE_GEMFILE: gemfiles/minimum.gemfile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+
+      - name: RSpec
+        run: bundle exec rspec

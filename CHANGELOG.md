@@ -3,6 +3,17 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.1] - 2026-10-09
+
+### Fixed
+
+- JSON-LD and web app manifests containing duplicated keys or comments are parsed again with `json` 3, which rejects them by default.
+
+### Changed
+
+- CI tests the minimum supported dependency versions (`gemfiles/minimum.gemfile`, Ruby 3.2) and Dependabot is enabled.
+- Gem metadata: removed the `homepage_uri` duplicate of `source_code_uri`.
+
 ## [2.0.0] - 2026-10-02
 
 Rewrite focused on picking the right icon, speed and safety. Breaking changes: see *Upgrading*.

@@ -84,6 +84,18 @@ RSpec.describe BrandLogo::Strategies::JsonLd do
     expect(BrandLogo::Logging.logger).to have_received(:warn).with(/JsonLd: invalid JSON/)
   end
 
+  it 'reads JSON-LD with duplicated keys' do
+    list = icons('{"@type":"Organization","logo":"/old.png","logo":"/logo.png"}')
+
+    expect(list.map(&:url)).to eq(['https://example.com/logo.png'])
+  end
+
+  it 'reads JSON-LD with comments' do
+    list = icons("{/* brand */\n\"@type\":\"Organization\",// logo\n\"logo\":\"/logo.png\"}")
+
+    expect(list.map(&:url)).to eq(['https://example.com/logo.png'])
+  end
+
   it 'drops unusable values' do
     list = icons('{"@type":"Organization","logo":["/a.png",{"url":null},"javascript:x",42]}')
 

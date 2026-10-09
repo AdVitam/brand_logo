@@ -1,0 +1,18 @@
+# frozen_string_literal: true
+
+source 'https://rubygems.org'
+
+gemspec path: '..'
+
+floor_operators = ['>=', '~>'].freeze
+
+Bundler.load_gemspec(File.expand_path('../brand_logo.gemspec', __dir__)).runtime_dependencies.each do |dep|
+  floor = dep.requirement.requirements.find { |op, _| floor_operators.include?(op) }
+  gem dep.name, "= #{floor.last}" if floor
+end
+
+group :test do
+  gem 'rspec',     '~> 3.13'
+  gem 'simplecov', require: false
+  gem 'webmock',   '~> 3.23'
+end
