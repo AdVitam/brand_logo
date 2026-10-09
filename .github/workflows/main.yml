@@ -16,7 +16,7 @@ jobs:
     name: Ruby ${{ matrix.ruby }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -32,7 +32,7 @@ jobs:
     name: Lint, types and gem build
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -64,7 +64,7 @@ jobs:
       BUNDLE_GEMFILE: gemfiles/no_sorbet.gemfile
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -83,7 +83,7 @@ jobs:
       BUNDLE_GEMFILE: gemfiles/minimum.gemfile
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
