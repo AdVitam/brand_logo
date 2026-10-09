@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 # typed: strict
 
-require 'json'
-
 module BrandLogo
   module Strategies
     class JsonLd
@@ -25,7 +23,7 @@ module BrandLogo
 
         logos = []
         page.document.css('script[type="application/ld+json"]').each do |script|
-          collect(JSON.parse(script.text), false, logos)
+          collect(LenientJson.parse(script.text), false, logos)
         rescue JSON::ParserError => e
           Logging.logger.warn("JsonLd: invalid JSON at #{page.url}: #{e.message}")
         end

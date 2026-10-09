@@ -74,6 +74,13 @@ RSpec.describe BrandLogo::Strategies::Manifest do
     expect(BrandLogo::Logging.logger).to have_received(:warn).with(/invalid JSON/)
   end
 
+  it 'reads a manifest with comments or duplicated keys' do
+    manifest = "{/* pwa */\n\"icons\":[{\"src\":\"a.png\",\"src\":\"b.png\"}] // end\n}"
+    list = icons(html, 'https://example.com/static/manifest.json' => manifest)
+
+    expect(list.map(&:url)).to eq(['https://example.com/static/b.png'])
+  end
+
   it 'returns nothing without a manifest link or when the manifest is unreachable' do
     expect(icons('<html></html>')).to eq([])
     expect(icons(html)).to eq([])

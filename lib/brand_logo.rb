@@ -20,6 +20,7 @@ require_relative 'brand_logo/http/client'
 require_relative 'brand_logo/http/url_guard'
 require_relative 'brand_logo/http/real_client'
 
+require_relative 'brand_logo/lenient_json'
 require_relative 'brand_logo/url_resolver'
 require_relative 'brand_logo/image_probe'
 require_relative 'brand_logo/page'
