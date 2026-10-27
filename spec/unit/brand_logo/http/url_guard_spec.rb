@@ -2,7 +2,7 @@
 
 RSpec.describe BrandLogo::Http::UrlGuard do
   def allowed?(url)
-    !described_class.resolve(url).nil?
+    described_class.validated_addresses(url).any?
   end
 
   def stub_dns(*addresses)
@@ -23,16 +23,18 @@ RSpec.describe BrandLogo::Http::UrlGuard do
     expect(allowed?('not a url')).to be(false)
   end
 
-  it 'returns the first resolved address' do
+  it 'returns every resolved address in order' do
     stub_dns('93.184.216.34', '2606:2800:220:1:248:1893:25c8:1946')
 
-    expect(described_class.resolve('https://example.com/')).to eq(IPAddr.new('93.184.216.34'))
+    expect(described_class.validated_addresses('https://example.com/')).to eq(
+      [IPAddr.new('93.184.216.34'), IPAddr.new('2606:2800:220:1:248:1893:25c8:1946')]
+    )
   end
 
   it 'resolves the host only once' do
     stub_dns('93.184.216.34')
 
-    described_class.resolve('https://example.com/')
+    described_class.validated_addresses('https://example.com/')
 
     expect(Addrinfo).to have_received(:getaddrinfo).once
   end

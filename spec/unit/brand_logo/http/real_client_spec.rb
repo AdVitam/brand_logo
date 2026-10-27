@@ -109,6 +109,28 @@ RSpec.describe BrandLogo::Http::RealClient do
       expect(Addrinfo).to have_received(:getaddrinfo).once
     end
 
+    it 'falls back to the next validated address when connecting fails' do
+      allow(Addrinfo).to receive(:getaddrinfo).and_return(
+        [instance_double(Addrinfo, ip_address: '2606:4700:4700::1111'),
+         instance_double(Addrinfo, ip_address: '93.184.216.34')]
+      )
+      allow(TCPSocket).to receive(:open).with('2606:4700:4700::1111', 443, any_args).and_raise(Errno::ENETUNREACH)
+      allow(TCPSocket).to receive(:open).with('93.184.216.34', 443, any_args).and_raise(Errno::ECONNREFUSED)
+
+      expect(fetch).to be_nil
+      expect(TCPSocket).to have_received(:open).with('93.184.216.34', 443, any_args)
+    end
+
+    it 'raises the last error once every validated address fails' do
+      allow(Addrinfo).to receive(:getaddrinfo).and_return(
+        [instance_double(Addrinfo, ip_address: '93.184.216.34'), instance_double(Addrinfo, ip_address: '93.184.216.35')]
+      )
+      allow(TCPSocket).to receive(:open).and_raise(Errno::ECONNREFUSED)
+
+      expect(fetch).to be_nil
+      expect(TCPSocket).to have_received(:open).twice
+    end
+
     it 'pins an ip literal to itself' do
       allow(TCPSocket).to receive(:open).and_raise(Errno::ECONNREFUSED)
 
@@ -130,12 +152,12 @@ RSpec.describe BrandLogo::Http::RealClient do
   end
 
   it 'does not pin the connection when private ips are allowed' do
-    allow(BrandLogo::Http::UrlGuard).to receive(:resolve)
+    allow(BrandLogo::Http::UrlGuard).to receive(:validated_addresses)
     allow(Addrinfo).to receive(:getaddrinfo)
     stub_request(:get, url).to_return(body: 'ok')
 
     expect(fetch.body).to eq('ok')
-    expect(BrandLogo::Http::UrlGuard).not_to have_received(:resolve)
+    expect(BrandLogo::Http::UrlGuard).not_to have_received(:validated_addresses)
     expect(Addrinfo).not_to have_received(:getaddrinfo)
   end
 

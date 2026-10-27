@@ -28,15 +28,15 @@ module BrandLogo
         false
       end
 
-      sig { params(url: String).returns(T.nilable(IPAddr)) }
-      def self.resolve(url)
+      sig { params(url: String).returns(T::Array[IPAddr]) }
+      def self.validated_addresses(url)
         host = web_host(URI.parse(url))
-        return nil unless host
+        return [] unless host
 
         resolved = addresses(host)
-        resolved.first if resolved.none? { |address| blocked?(address) }
+        resolved.none? { |address| blocked?(address) } ? resolved : []
       rescue URI::Error
-        nil
+        []
       end
 
       sig { params(uri: URI::Generic).returns(T.nilable(String)) }

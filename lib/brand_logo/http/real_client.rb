@@ -56,14 +56,22 @@ module BrandLogo
       def socket_class_for(url)
         return (UrlGuard.web_url?(url) ? TCPSocket : blocked(url)) unless @config.block_private_ips
 
-        address = UrlGuard.resolve(url)
-        address ? pinned_socket(address) : blocked(url)
+        addresses = UrlGuard.validated_addresses(url)
+        addresses.empty? ? blocked(url) : pinned_socket(addresses)
       end
 
-      sig { params(address: IPAddr).returns(T.class_of(TCPSocket)) }
-      def pinned_socket(address)
+      sig { params(addresses: T::Array[IPAddr]).returns(T.class_of(TCPSocket)) }
+      def pinned_socket(addresses)
         Class.new(TCPSocket) do
-          define_singleton_method(:open) { |_host, port, **options| super(address.to_s, port, **options) }
+          define_singleton_method(:open) do |_host, port, **options|
+            last_error = T.let(nil, T.nilable(SystemCallError))
+            addresses.each do |address|
+              return super(address.to_s, port, **options)
+            rescue SystemCallError => e
+              last_error = e
+            end
+            raise T.must(last_error)
+          end
         end
       end
 
