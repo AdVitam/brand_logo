@@ -3,6 +3,13 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.2] - 2026-10-27
+
+### Security
+
+- `block_private_ips` is no longer vulnerable to DNS rebinding: the host is resolved once per request (and redirect hop) and the connection is pinned to the validated address.
+- 6to4 (`2002::/16`) and Teredo (`2001::/32`) addresses are blocked, as they can embed private IPv4 addresses.
+
 ## [2.0.1] - 2026-10-09
 
 ### Fixed
