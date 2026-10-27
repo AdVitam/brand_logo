@@ -33,9 +33,12 @@ module BrandLogo
       def get(url, deadline:, max_bytes:, range: nil)
         current = url
         (@config.max_hops + 1).times do
-          return nil if deadline.expired? || !allowed?(current)
+          return nil if deadline.expired?
 
-          result = request(current, deadline, max_bytes, range)
+          socket_class = socket_class_for(current)
+          return nil unless socket_class
+
+          result = request(current, socket_class, deadline, max_bytes, range)
           return result if result.nil? || result.is_a?(Response)
 
           current = result
@@ -49,20 +52,44 @@ module BrandLogo
 
       private
 
-      sig { params(url: String).returns(T::Boolean) }
-      def allowed?(url)
-        return true if UrlGuard.allowed?(url, block_private_ips: @config.block_private_ips)
+      sig { params(url: String).returns(T.nilable(T.class_of(TCPSocket))) }
+      def socket_class_for(url)
+        return (UrlGuard.web_url?(url) ? TCPSocket : blocked(url)) unless @config.block_private_ips
 
+        addresses = UrlGuard.validated_addresses(url)
+        addresses.empty? ? blocked(url) : pinned_socket(addresses)
+      end
+
+      sig { params(addresses: T::Array[IPAddr]).returns(T.class_of(TCPSocket)) }
+      def pinned_socket(addresses)
+        Class.new(TCPSocket) do
+          define_singleton_method(:open) do |_host, port, **options|
+            last_error = T.let(nil, T.nilable(SystemCallError))
+            addresses.each do |address|
+              return super(address.to_s, port, **options)
+            rescue SystemCallError => e
+              last_error = e
+            end
+            raise T.must(last_error)
+          end
+        end
+      end
+
+      sig { params(url: String).returns(NilClass) }
+      def blocked(url)
         log("blocked #{url}")
-        false
+        nil
       end
 
       sig do
-        params(url: String, deadline: Deadline, max_bytes: Integer, range: T.nilable(T::Range[Integer]))
-          .returns(T.nilable(T.any(Response, String)))
+        params(
+          url: String, socket_class: T.class_of(TCPSocket), deadline: Deadline, max_bytes: Integer,
+          range: T.nilable(T::Range[Integer])
+        ).returns(T.nilable(T.any(Response, String)))
       end
-      def request(url, deadline, max_bytes, range)
-        client = HTTP.timeout([@config.timeout, deadline.remaining].min).headers(headers(range))
+      def request(url, socket_class, deadline, max_bytes, range)
+        client = HTTP::Client.new(socket_class: socket_class)
+                             .timeout([@config.timeout, deadline.remaining].min).headers(headers(range))
         response = client.get(url)
         status = response.status.to_i
         return redirect_target(url, response) if REDIRECT_STATUSES.include?(status)

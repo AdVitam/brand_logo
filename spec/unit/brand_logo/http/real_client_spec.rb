@@ -77,7 +77,7 @@ RSpec.describe BrandLogo::Http::RealClient do
     end
 
     it 'returns nil when a hop targets a blocked url' do
-      allow(BrandLogo::Http::UrlGuard).to receive(:allowed?) { |target, **| !target.include?('internal') }
+      allow(BrandLogo::Http::UrlGuard).to receive(:web_url?) { |target| !target.include?('internal') }
       stub_request(:get, url).to_return(status: 302, headers: { 'Location' => 'http://internal.example.com/' })
       internal = stub_request(:get, 'http://internal.example.com/').to_return(body: 'secret')
 
@@ -87,10 +87,78 @@ RSpec.describe BrandLogo::Http::RealClient do
   end
 
   it 'checks the url guard before the first request' do
-    allow(BrandLogo::Http::UrlGuard).to receive(:allowed?).and_return(false)
+    allow(BrandLogo::Http::UrlGuard).to receive(:web_url?).and_return(false)
 
     expect(fetch).to be_nil
-    expect(BrandLogo::Http::UrlGuard).to have_received(:allowed?).with(url, block_private_ips: false)
+    expect(BrandLogo::Http::UrlGuard).to have_received(:web_url?).with(url)
+  end
+
+  describe 'with block_private_ips' do
+    let(:config) { BrandLogo::Config.new(block_private_ips: true, max_hops: 2) }
+
+    before { WebMock.allow_net_connect! }
+
+    it 'connects to the validated address even if the next resolution would be private' do
+      allow(Addrinfo).to receive(:getaddrinfo).and_return(
+        [instance_double(Addrinfo, ip_address: '93.184.216.34')], [instance_double(Addrinfo, ip_address: '10.0.0.5')]
+      )
+      allow(TCPSocket).to receive(:open).and_raise(Errno::ECONNREFUSED)
+
+      expect(fetch).to be_nil
+      expect(TCPSocket).to have_received(:open).with('93.184.216.34', 443, any_args)
+      expect(Addrinfo).to have_received(:getaddrinfo).once
+    end
+
+    it 'falls back to the next validated address when connecting fails' do
+      allow(Addrinfo).to receive(:getaddrinfo).and_return(
+        [instance_double(Addrinfo, ip_address: '2606:4700:4700::1111'),
+         instance_double(Addrinfo, ip_address: '93.184.216.34')]
+      )
+      allow(TCPSocket).to receive(:open).with('2606:4700:4700::1111', 443, any_args).and_raise(Errno::ENETUNREACH)
+      allow(TCPSocket).to receive(:open).with('93.184.216.34', 443, any_args).and_raise(Errno::ECONNREFUSED)
+
+      expect(fetch).to be_nil
+      expect(TCPSocket).to have_received(:open).with('93.184.216.34', 443, any_args)
+    end
+
+    it 'raises the last error once every validated address fails' do
+      allow(Addrinfo).to receive(:getaddrinfo).and_return(
+        [instance_double(Addrinfo, ip_address: '93.184.216.34'), instance_double(Addrinfo, ip_address: '93.184.216.35')]
+      )
+      allow(TCPSocket).to receive(:open).and_raise(Errno::ECONNREFUSED)
+
+      expect(fetch).to be_nil
+      expect(TCPSocket).to have_received(:open).twice
+    end
+
+    it 'pins an ip literal to itself' do
+      allow(TCPSocket).to receive(:open).and_raise(Errno::ECONNREFUSED)
+
+      expect(fetch('http://[2606:4700:4700::1111]:8080/')).to be_nil
+      expect(TCPSocket).to have_received(:open).with('2606:4700:4700::1111', 8080, any_args)
+    end
+
+    it 'refuses a redirect to a host resolving to a private address' do
+      allow(Addrinfo).to receive(:getaddrinfo) do |host, *|
+        [instance_double(Addrinfo, ip_address: host.start_with?('internal') ? '10.0.0.5' : '93.184.216.34')]
+      end
+      WebMock.disable_net_connect!
+      stub_request(:get, url).to_return(status: 302, headers: { 'Location' => 'http://internal.example.com/' })
+      internal = stub_request(:get, 'http://internal.example.com/').to_return(body: 'secret')
+
+      expect(fetch).to be_nil
+      expect(internal).not_to have_been_requested
+    end
+  end
+
+  it 'does not pin the connection when private ips are allowed' do
+    allow(BrandLogo::Http::UrlGuard).to receive(:validated_addresses)
+    allow(Addrinfo).to receive(:getaddrinfo)
+    stub_request(:get, url).to_return(body: 'ok')
+
+    expect(fetch.body).to eq('ok')
+    expect(BrandLogo::Http::UrlGuard).not_to have_received(:validated_addresses)
+    expect(Addrinfo).not_to have_received(:getaddrinfo)
   end
 
   it 'returns nil on a timeout' do

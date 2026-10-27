@@ -107,9 +107,10 @@ Internationalized domains must be given in punycode (`xn--…`); IP addresses ar
 
 The gem fetches URLs chosen by third-party pages. With `block_private_ips: true` (default),
 every request — including each redirect — is refused unless its host resolves only to public
-addresses, and only `http`/`https` URLs are fetched. A DNS answer that changes between the check
-and the connection (DNS rebinding) is not covered; run lookups from a network without access to
-sensitive internal services if inputs are untrusted.
+addresses, and only `http`/`https` URLs are fetched. The host is resolved once per request and the
+connection is pinned to the validated address (TLS still verifies the original hostname), so a DNS
+answer that changes between the check and the connection (DNS rebinding) cannot reach a private
+address. Pinning does not apply through an HTTP proxy, which resolves the host itself.
 
 ## Logging
 
