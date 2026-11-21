@@ -441,6 +441,17 @@ RSpec.describe BrandLogo::Http::Session do
       end
     end
 
+    context 'when the body is exactly max_bytes long' do
+      let(:body) { 'a' * 10 }
+
+      it 'keeps the connection for the next request' do
+        fetch(server.url('/a'), max_bytes: 10)
+        fetch(server.url('/b'), max_bytes: 10)
+
+        expect(server.accepts).to eq(1)
+      end
+    end
+
     context 'when the server drops an idle connection' do
       let(:drop) { true }
 

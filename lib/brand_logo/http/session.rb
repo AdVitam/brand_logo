@@ -164,7 +164,7 @@ module BrandLogo
         complete = T.let(true, T::Boolean)
         response.body.each do |chunk|
           buffer << chunk.b
-          next if buffer.bytesize < max_bytes
+          next if buffer.bytesize <= max_bytes
 
           complete = false
           break
