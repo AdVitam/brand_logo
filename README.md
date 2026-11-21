@@ -98,6 +98,14 @@ end
 BrandLogo::Fetcher.new(strategies: [MyStrategy.new, BrandLogo::Strategies::LinkTag.new])
 ```
 
+### Custom HTTP client
+
+`BrandLogo::Fetcher.new(http: client)` accepts any object including `BrandLogo::Http::Client`
+(implement `get(url, deadline:, max_bytes:, range: nil)`, returning a `BrandLogo::Http::Response`
+or `nil`). Optionally override `session { |client| ... }` to share state across the requests of one
+lookup; it yields `self` by default. The built-in client reuses connections per origin within a
+lookup this way.
+
 ## Input
 
 `fetch` accepts a hostname or a URL (`"GitHub.com "`, `"https://github.com/about"`).
@@ -107,10 +115,11 @@ Internationalized domains must be given in punycode (`xn--…`); IP addresses ar
 
 The gem fetches URLs chosen by third-party pages. With `block_private_ips: true` (default),
 every request — including each redirect — is refused unless its host resolves only to public
-addresses, and only `http`/`https` URLs are fetched. The host is resolved once per request and the
-connection is pinned to the validated address (TLS still verifies the original hostname), so a DNS
-answer that changes between the check and the connection (DNS rebinding) cannot reach a private
-address. Pinning does not apply through an HTTP proxy, which resolves the host itself.
+addresses, and only `http`/`https` URLs are fetched. Each host is resolved once per lookup and every
+connection to it is pinned to the validated address (TLS still verifies the original hostname), so
+a DNS answer that changes between the check and the connection (DNS rebinding) cannot reach a
+private address. Resolutions are never shared between lookups. Pinning does not apply through an
+HTTP proxy, which resolves the host itself.
 
 ## Logging
 

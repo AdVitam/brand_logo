@@ -113,5 +113,15 @@ module BrandLogo
       sig { returns(String) }
       def body; end
     end
+
+    class ConnectionPool
+      class Entry
+        sig { returns(HTTP::Client) }
+        def client; end
+
+        sig { returns(Numeric) }
+        def timeout; end
+      end
+    end
   end
 end

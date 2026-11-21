@@ -1,186 +1,60 @@
 # frozen_string_literal: true
 
 RSpec.describe BrandLogo::Http::RealClient do
-  let(:config) { BrandLogo::Config.new(block_private_ips: false, max_hops: 2) }
-  let(:client) { described_class.new(config) }
+  subject(:client) { described_class.new(config) }
+
+  let(:config) { BrandLogo::Config.new(block_private_ips: false) }
   let(:deadline) { BrandLogo::Deadline.new(10) }
   let(:url) { 'https://example.com/logo.png' }
+  let(:response) { BrandLogo::Http::Response.new(url: url, body: 'data') }
+  let(:session) { instance_double(BrandLogo::Http::Session, get: response, close: nil) }
 
-  def fetch(target = url, max_bytes: 1_000, range: nil, deadline: self.deadline)
-    client.get(target, deadline: deadline, max_bytes: max_bytes, range: range)
-  end
+  before { allow(BrandLogo::Http::Session).to receive(:new).with(config).and_return(session) }
 
-  it 'returns the body and final url on success' do
-    stub_request(:get, url).to_return(status: 200, body: 'data')
-
-    expect(fetch).to have_attributes(url: url, body: 'data')
-  end
-
-  it 'returns nil for a non-2xx status' do
-    stub_request(:get, url).to_return(status: 404, body: 'nope')
-
-    expect(fetch).to be_nil
-  end
-
-  it 'accepts a partial content response' do
-    stub_request(:get, url).to_return(status: 206, body: 'ab')
-
-    expect(fetch(range: 0..1)&.body).to eq('ab')
-  end
-
-  it 'sends the configured user agent and an Accept header' do
-    stub_request(:get, url).with(headers: { 'User-Agent' => config.user_agent, 'Accept' => %r{image/\*} })
-                           .to_return(body: 'ok')
-
-    expect(fetch.body).to eq('ok')
-  end
-
-  it 'sends a Range header when a range is given' do
-    stub = stub_request(:get, url).with(headers: { 'Range' => 'bytes=0-99' }).to_return(status: 206, body: 'x')
-
-    fetch(range: 0..99)
-
-    expect(stub).to have_been_requested
-  end
-
-  it 'truncates the body at max_bytes' do
-    stub_request(:get, url).to_return(body: 'a' * 100)
-
-    expect(fetch(max_bytes: 10).body).to eq('a' * 10)
-  end
-
-  describe 'redirects' do
-    it 'follows them and reports the final url' do
-      stub_request(:get, url).to_return(status: 301, headers: { 'Location' => 'https://cdn.example.com/a.png' })
-      stub_request(:get, 'https://cdn.example.com/a.png').to_return(body: 'final')
-
-      expect(fetch).to have_attributes(url: 'https://cdn.example.com/a.png', body: 'final')
+  describe '#get' do
+    it 'delegates to a one-shot session and closes it' do
+      expect(client.get(url, deadline: deadline, max_bytes: 10, range: 0..1)).to eq(response)
+      expect(session).to have_received(:get).with(url, deadline: deadline, max_bytes: 10, range: 0..1)
+      expect(session).to have_received(:close)
     end
 
-    it 'resolves a relative Location against the current url' do
-      stub_request(:get, url).to_return(status: 302, headers: { 'Location' => '/static/logo.png' })
-      stub_request(:get, 'https://example.com/static/logo.png').to_return(body: 'rel')
+    it 'closes the session when the request raises' do
+      allow(session).to receive(:get).and_raise(RuntimeError, 'boom')
 
-      expect(fetch.url).to eq('https://example.com/static/logo.png')
-    end
-
-    it 'returns nil after too many hops' do
-      stub_request(:get, /example\.com/).to_return(status: 302, headers: { 'Location' => '/loop' })
-
-      expect(fetch).to be_nil
-    end
-
-    it 'returns nil when a redirect has no Location' do
-      stub_request(:get, url).to_return(status: 302)
-
-      expect(fetch).to be_nil
-    end
-
-    it 'returns nil when a hop targets a blocked url' do
-      allow(BrandLogo::Http::UrlGuard).to receive(:web_url?) { |target| !target.include?('internal') }
-      stub_request(:get, url).to_return(status: 302, headers: { 'Location' => 'http://internal.example.com/' })
-      internal = stub_request(:get, 'http://internal.example.com/').to_return(body: 'secret')
-
-      expect(fetch).to be_nil
-      expect(internal).not_to have_been_requested
+      expect { client.get(url, deadline: deadline, max_bytes: 10) }.to raise_error(RuntimeError, 'boom')
+      expect(session).to have_received(:close)
     end
   end
 
-  it 'checks the url guard before the first request' do
-    allow(BrandLogo::Http::UrlGuard).to receive(:web_url?).and_return(false)
+  describe '#session' do
+    it 'yields a session and closes it afterwards' do
+      yielded = nil
+      client.session { |http| yielded = http }
 
-    expect(fetch).to be_nil
-    expect(BrandLogo::Http::UrlGuard).to have_received(:web_url?).with(url)
-  end
-
-  describe 'with block_private_ips' do
-    let(:config) { BrandLogo::Config.new(block_private_ips: true, max_hops: 2) }
-
-    before { WebMock.allow_net_connect! }
-
-    it 'connects to the validated address even if the next resolution would be private' do
-      allow(Addrinfo).to receive(:getaddrinfo).and_return(
-        [instance_double(Addrinfo, ip_address: '93.184.216.34')], [instance_double(Addrinfo, ip_address: '10.0.0.5')]
-      )
-      allow(TCPSocket).to receive(:open).and_raise(Errno::ECONNREFUSED)
-
-      expect(fetch).to be_nil
-      expect(TCPSocket).to have_received(:open).with('93.184.216.34', 443, any_args)
-      expect(Addrinfo).to have_received(:getaddrinfo).once
+      expect(yielded).to eq(session)
+      expect(session).to have_received(:close)
     end
 
-    it 'falls back to the next validated address when connecting fails' do
-      allow(Addrinfo).to receive(:getaddrinfo).and_return(
-        [instance_double(Addrinfo, ip_address: '2606:4700:4700::1111'),
-         instance_double(Addrinfo, ip_address: '93.184.216.34')]
-      )
-      allow(TCPSocket).to receive(:open).with('2606:4700:4700::1111', 443, any_args).and_raise(Errno::ENETUNREACH)
-      allow(TCPSocket).to receive(:open).with('93.184.216.34', 443, any_args).and_raise(Errno::ECONNREFUSED)
-
-      expect(fetch).to be_nil
-      expect(TCPSocket).to have_received(:open).with('93.184.216.34', 443, any_args)
+    it 'returns the block value' do
+      expect(client.session { |http| http.get(url, deadline: deadline, max_bytes: 10) }).to eq(response)
     end
 
-    it 'raises the last error once every validated address fails' do
-      allow(Addrinfo).to receive(:getaddrinfo).and_return(
-        [instance_double(Addrinfo, ip_address: '93.184.216.34'), instance_double(Addrinfo, ip_address: '93.184.216.35')]
-      )
-      allow(TCPSocket).to receive(:open).and_raise(Errno::ECONNREFUSED)
-
-      expect(fetch).to be_nil
-      expect(TCPSocket).to have_received(:open).twice
+    it 'closes the session even when the block raises' do
+      expect { client.session { raise 'boom' } }.to raise_error(RuntimeError, 'boom')
+      expect(session).to have_received(:close)
     end
 
-    it 'pins an ip literal to itself' do
-      allow(TCPSocket).to receive(:open).and_raise(Errno::ECONNREFUSED)
+    it 'opens a new session each time' do
+      2.times { client.session { nil } }
 
-      expect(fetch('http://[2606:4700:4700::1111]:8080/')).to be_nil
-      expect(TCPSocket).to have_received(:open).with('2606:4700:4700::1111', 8080, any_args)
-    end
-
-    it 'refuses a redirect to a host resolving to a private address' do
-      allow(Addrinfo).to receive(:getaddrinfo) do |host, *|
-        [instance_double(Addrinfo, ip_address: host.start_with?('internal') ? '10.0.0.5' : '93.184.216.34')]
-      end
-      WebMock.disable_net_connect!
-      stub_request(:get, url).to_return(status: 302, headers: { 'Location' => 'http://internal.example.com/' })
-      internal = stub_request(:get, 'http://internal.example.com/').to_return(body: 'secret')
-
-      expect(fetch).to be_nil
-      expect(internal).not_to have_been_requested
+      expect(BrandLogo::Http::Session).to have_received(:new).twice
     end
   end
 
-  it 'does not pin the connection when private ips are allowed' do
-    allow(BrandLogo::Http::UrlGuard).to receive(:validated_addresses)
-    allow(Addrinfo).to receive(:getaddrinfo)
-    stub_request(:get, url).to_return(body: 'ok')
+  it 'fetches over HTTP end to end' do
+    allow(BrandLogo::Http::Session).to receive(:new).and_call_original
+    stub_request(:get, url).to_return(body: 'data')
 
-    expect(fetch.body).to eq('ok')
-    expect(BrandLogo::Http::UrlGuard).not_to have_received(:validated_addresses)
-    expect(Addrinfo).not_to have_received(:getaddrinfo)
-  end
-
-  it 'returns nil on a timeout' do
-    stub_request(:get, url).to_timeout
-
-    expect(fetch).to be_nil
-  end
-
-  it 'returns nil on a connection error' do
-    stub_request(:get, url).to_raise(Errno::ECONNREFUSED)
-
-    expect(fetch).to be_nil
-  end
-
-  it 'returns nil for an invalid url' do
-    expect(fetch('http://exa mple.com/')).to be_nil
-  end
-
-  it 'returns nil without any request once the deadline is expired' do
-    stub = stub_request(:get, url)
-
-    expect(fetch(deadline: BrandLogo::Deadline.new(0))).to be_nil
-    expect(stub).not_to have_been_requested
+    expect(client.get(url, deadline: deadline, max_bytes: 10)).to have_attributes(url: url, body: 'data')
   end
 end

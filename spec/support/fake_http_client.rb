@@ -4,12 +4,18 @@ module BrandLogo
   class FakeHttpClient
     include Http::Client
 
-    attr_reader :requests
+    attr_reader :requests, :sessions
 
     def initialize(responses = {})
       @responses = responses
       @requests = []
+      @sessions = 0
       @lock = Mutex.new
+    end
+
+    def session(&block)
+      @lock.synchronize { @sessions += 1 }
+      super
     end
 
     def get(url, max_bytes:, **)

@@ -40,9 +40,10 @@ module BrandLogo
     def fetch_all(input)
       domain = Domain.normalize(input)
       stored = cached("all/#{domain}") do
-        lookup = new_lookup(domain)
-        icons = lookup.all
-        [icons.map(&:to_h), ttl_for(found: !icons.empty?, lookup: lookup)]
+        with_lookup(domain) do |lookup|
+          icons = lookup.all
+          [icons.map(&:to_h), ttl_for(found: !icons.empty?, lookup: lookup)]
+        end
       end
       Array(stored).map { |hash| Icon.from_h(hash) }
     end
@@ -60,9 +61,10 @@ module BrandLogo
     sig { params(domain: String).returns(T.nilable(Icon)) }
     def fetch_domain(domain)
       stored = cached("best/#{domain}") do
-        lookup = new_lookup(domain)
-        icon = lookup.best
-        [icon ? icon.to_h : false, ttl_for(found: !icon.nil?, lookup: lookup)]
+        with_lookup(domain) do |lookup|
+          icon = lookup.best
+          [icon ? icon.to_h : false, ttl_for(found: !icon.nil?, lookup: lookup)]
+        end
       end
       stored ? Icon.from_h(stored) : nil
     end
@@ -89,10 +91,16 @@ module BrandLogo
       found ? @config.cache_ttl : @config.negative_cache_ttl
     end
 
-    sig { params(domain: String).returns(Lookup) }
-    def new_lookup(domain)
-      context = Context.new(domain: domain, config: @config, http: @http)
-      Lookup.new(context: context, strategies: @strategies, ranker: @ranker)
+    sig do
+      type_parameters(:R).params(
+        domain: String, block: T.proc.params(lookup: Lookup).returns(T.type_parameter(:R))
+      ).returns(T.type_parameter(:R))
+    end
+    def with_lookup(domain, &block)
+      @http.session do |http|
+        context = Context.new(domain: domain, config: @config, http: http)
+        yield Lookup.new(context: context, strategies: @strategies, ranker: @ranker)
+      end
     end
 
     sig { returns(T::Array[Strategies::Base]) }

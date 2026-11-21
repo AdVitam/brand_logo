@@ -290,6 +290,54 @@ RSpec.describe BrandLogo::Fetcher do
     end
   end
 
+  describe 'sessions' do
+    let(:responses) do
+      {
+        'https://example.com' => html('<link rel="icon" href="/icon.png">'),
+        'https://example.com/icon.png' => ImageFixtures.png(256, 256)
+      }
+    end
+
+    it 'opens one session per fetch' do
+      fetcher.fetch('example.com')
+
+      expect(http.sessions).to eq(1)
+    end
+
+    it 'opens one session per fetch_all' do
+      fetcher.fetch_all('example.com')
+
+      expect(http.sessions).to eq(1)
+    end
+
+    it 'opens one session per domain in fetch_many' do
+      fetcher.fetch_many(['example.com', 'https://example.com/', 'unknown.org'])
+
+      expect(http.sessions).to eq(2)
+    end
+
+    it 'does not open a session for a cached lookup' do
+      config = BrandLogo::Config.new
+      cached = described_class.new(config: config, http: http)
+      cached.fetch('example.com')
+
+      expect { cached.fetch('example.com') }.not_to(change(http, :sessions))
+    end
+
+    it 'works with a custom client that does not define a session' do
+      plain = Class.new do
+        include BrandLogo::Http::Client
+
+        def get(url, max_bytes:, **)
+          BrandLogo::Http::Response.new(url: url, body: '<link rel="icon" href="/i.png">'.byteslice(0, max_bytes))
+        end
+      end.new
+      custom = described_class.new(config: config, http: plain, strategies: [BrandLogo::Strategies::LinkTag.new])
+
+      expect { custom.fetch('example.com') }.not_to raise_error
+    end
+  end
+
   describe 'caching' do
     let(:config) { BrandLogo::Config.new }
     let(:responses) do
