@@ -2,5 +2,5 @@
 # typed: strict
 
 module BrandLogo
-  VERSION = '3.0.0'
+  VERSION = '3.1.0'
 end

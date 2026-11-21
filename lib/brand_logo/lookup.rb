@@ -22,9 +22,8 @@ module BrandLogo
         break if @context.deadline.expired?
         next if skip?(stage, icons)
 
-        icons = run(stage, icons, collections.fetch(stage))
-        winner = icons.first
-        return winner if winner && @ranker.good_enough?(winner)
+        icons = run(stage, icons, collections.fetch(stage), stop_early: true)
+        return icons.first if settled?(icons)
       end
       icons.first
     end
@@ -33,7 +32,7 @@ module BrandLogo
     def all
       collections = start_collections
       STAGES.reduce(T.let([], T::Array[Icon])) do |icons, stage|
-        @context.deadline.expired? ? icons : run(stage, icons, collections.fetch(stage))
+        @context.deadline.expired? ? icons : run(stage, icons, collections.fetch(stage), stop_early: false)
       end
     end
 
@@ -55,14 +54,27 @@ module BrandLogo
     end
 
     sig do
-      params(stage: Symbol, previous: T::Array[Icon], collection: T.proc.returns(T::Array[Icon]))
-        .returns(T::Array[Icon])
+      params(
+        stage: Symbol, previous: T::Array[Icon], collection: T.proc.returns(T::Array[Icon]), stop_early: T::Boolean
+      ).returns(T::Array[Icon])
     end
-    def run(stage, previous, collection)
+    def run(stage, previous, collection, stop_early:)
       seen = previous.to_set(&:url)
       candidates = collection.call.uniq(&:url).reject { |icon| seen.include?(icon.url) }
       BrandLogo::Logging.logger.debug("[#{@context.domain}] #{stage}: #{candidates.size} new candidate(s)")
-      @ranker.rank(previous + parallel(candidates) { |icon| measure(icon) }.compact)
+      batch = stop_early ? @context.config.concurrency : [candidates.size, 1].max
+      icons = previous
+      @ranker.order(candidates).each_slice(batch) do |slice|
+        icons = @ranker.rank(icons + parallel(slice) { |icon| measure(icon) }.compact)
+        break if stop_early && settled?(icons)
+      end
+      icons
+    end
+
+    sig { params(icons: T::Array[Icon]).returns(T::Boolean) }
+    def settled?(icons)
+      winner = icons.first
+      (!winner.nil? && @ranker.good_enough?(winner)) || @context.deadline.expired?
     end
 
     sig { params(stage: Symbol).returns(T::Array[Icon]) }

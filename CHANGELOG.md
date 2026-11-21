@@ -3,6 +3,12 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [3.1.0] - 2026-11-21
+
+### Changed
+
+- `fetch` probes the best declared candidates first, in batches of `concurrency`, and stops once one is good enough; `fetch_all` still probes every candidate.
+
 ## [3.0.0] - 2026-11-21
 
 Breaking change: see *Upgrading*.
@@ -11,6 +17,7 @@ Breaking change: see *Upgrading*.
 
 - The size of an ICO/CUR is that of the largest entry in its directory, not the first one, and a measured size takes precedence over a declared `sizes` attribute.
 - The default `user_agent` announces `BrandLogo/3`.
+- Every stage collection starts with the lookup: the manifest and browserconfig are fetched while document icons are probed. When the lookup stops early those requests are discarded, and nothing is fetched speculatively with `concurrency: 1`.
 
 ### Removed
 
@@ -21,12 +28,6 @@ Breaking change: see *Upgrading*.
 | 2.x | 3.0 |
 |---|---|
 | `Config.new(allow_svg: false)` | `Config.new(formats: %i[ico png jpg webp gif avif bmp])` (any list without `:svg`) |
-
-## [2.0.3] - 2026-11-21
-
-### Changed
-
-- Every stage collection starts with the lookup: the manifest and browserconfig are fetched while document icons are probed. When the lookup stops early those requests are discarded, and nothing is fetched speculatively with `concurrency: 1`.
 
 ## [2.0.2] - 2026-10-27
 
