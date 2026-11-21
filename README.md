@@ -56,7 +56,7 @@ A `Fetcher` is thread-safe and meant to be reused (it holds the cache).
 config = BrandLogo::Config.new(
   min_size: 32,                        # Integer, { width:, height: } or BrandLogo::Dimensions
   max_size: { width: 1024, height: 1024 },
-  allow_svg: true,
+  formats: %i[png jpg webp gif],       # allow-list of accepted formats; nil accepts all: ico png svg jpg webp gif avif bmp
   prefer: :square,                     # :square, :largest or :svg
   target_size: 192,                    # pick the icon closest to (and preferably above) this size
   color_scheme: :dark,                 # favour <link media="(prefers-color-scheme: dark)"> icons

@@ -5,7 +5,7 @@ require 'digest'
 
 module BrandLogo
   Config = Data.define(
-    :min_size, :max_size, :allow_svg, :prefer, :target_size, :color_scheme,
+    :min_size, :max_size, :formats, :prefer, :target_size, :color_scheme,
     :timeout, :deadline, :max_hops, :max_body_bytes, :user_agent, :concurrency,
     :block_private_ips, :external_fallbacks, :cache, :cache_ttl, :negative_cache_ttl
   ) do
@@ -15,7 +15,7 @@ module BrandLogo
       params(
         min_size: T.untyped,
         max_size: T.untyped,
-        allow_svg: T::Boolean,
+        formats: T.nilable(T::Array[Symbol]),
         prefer: Symbol,
         target_size: T.nilable(Integer),
         color_scheme: T.nilable(Symbol),
@@ -33,16 +33,16 @@ module BrandLogo
       ).void
     end
     def initialize(
-      min_size: nil, max_size: nil, allow_svg: true, prefer: :square, target_size: nil, color_scheme: nil,
+      min_size: nil, max_size: nil, formats: nil, prefer: :square, target_size: nil, color_scheme: nil,
       timeout: 5, deadline: 15, max_hops: 5, max_body_bytes: 2_000_000, user_agent: Config::USER_AGENT,
       concurrency: 4, block_private_ips: true, external_fallbacks: Config::EXTERNAL_FALLBACKS, cache: Cache::Memory.new,
       cache_ttl: 86_400, negative_cache_ttl: 3_600
     )
       super(
-        min_size: Dimensions.coerce(min_size), max_size: Dimensions.coerce(max_size), allow_svg: allow_svg,
-        prefer: prefer, target_size: target_size, color_scheme: color_scheme, timeout: timeout,
-        deadline: deadline, max_hops: max_hops, max_body_bytes: max_body_bytes, user_agent: user_agent,
-        concurrency: concurrency, block_private_ips: block_private_ips,
+        min_size: Dimensions.coerce(min_size), max_size: Dimensions.coerce(max_size),
+        formats: formats&.dup&.freeze, prefer: prefer, target_size: target_size, color_scheme: color_scheme,
+        timeout: timeout, deadline: deadline, max_hops: max_hops, max_body_bytes: max_body_bytes,
+        user_agent: user_agent, concurrency: concurrency, block_private_ips: block_private_ips,
         external_fallbacks: external_fallbacks.dup.freeze, cache: cache, cache_ttl: cache_ttl,
         negative_cache_ttl: negative_cache_ttl
       )
@@ -59,7 +59,7 @@ module BrandLogo
     sig { returns(String) }
     def cache_digest
       Digest::SHA256.hexdigest(
-        [min_size, max_size, allow_svg, prefer, target_size, color_scheme, external_fallbacks,
+        [min_size, max_size, formats, prefer, target_size, color_scheme, external_fallbacks,
          block_private_ips].inspect
       )[0, 12].to_s
     end
@@ -77,6 +77,9 @@ module BrandLogo
     sig { void }
     def validate_choices!
       check(Config::PREFERENCES.include?(prefer), "prefer must be one of #{Config::PREFERENCES}")
+      allowed = formats
+      check(allowed.nil? || (allowed.any? && (allowed - ImageFormat::ALL).empty?),
+            "formats must be nil or a non-empty subset of #{ImageFormat::ALL}")
       check(color_scheme.nil? || Config::COLOR_SCHEMES.include?(color_scheme),
             "color_scheme must be nil or one of #{Config::COLOR_SCHEMES}")
       check((external_fallbacks - Config::EXTERNAL_FALLBACKS).empty?,
@@ -105,7 +108,7 @@ module BrandLogo
     COLOR_SCHEMES = T.let(%i[light dark].freeze, T::Array[Symbol])
     EXTERNAL_FALLBACKS = T.let(%i[google duckduckgo].freeze, T::Array[Symbol])
     USER_AGENT = T.let(
-      'Mozilla/5.0 (compatible; BrandLogo/2; +https://github.com/AdVitam/brand_logo)',
+      'Mozilla/5.0 (compatible; BrandLogo/3; +https://github.com/AdVitam/brand_logo)',
       String
     )
   end

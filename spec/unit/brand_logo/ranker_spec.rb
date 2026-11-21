@@ -15,10 +15,11 @@ RSpec.describe BrandLogo::Ranker do
       expect(rank([icon('a', format: nil, size: [64, 64]), icon('b', size: [32, 32])])).to eq(['b'])
     end
 
-    it 'drops SVG unless allowed' do
-      icons = [icon('s', format: :svg), icon('p', size: [32, 32])]
-      expect(rank(icons, allow_svg: false)).to eq(['p'])
-      expect(rank(icons)).to eq(%w[s p])
+    it 'drops icons outside the formats list, SVG included' do
+      icons = [icon('s', format: :svg), icon('p', size: [32, 32]), icon('i', format: :ico, size: [32, 32])]
+      expect(rank(icons, formats: %i[png])).to eq(['p'])
+      expect(rank(icons, formats: %i[png ico])).to eq(%w[p i])
+      expect(rank(icons).sort).to eq(%w[i p s])
     end
 
     it 'applies size limits to rasters with known dimensions only' do
@@ -103,9 +104,9 @@ RSpec.describe BrandLogo::Ranker do
       expect(described_class.new(BrandLogo::Config.new(prefer: :svg)).good_enough?(wordmark)).to be(true)
     end
 
-    it 'rejects SVG when not allowed' do
-      expect(described_class.new(BrandLogo::Config.new(allow_svg: false)).good_enough?(icon('s',
-                                                                                            format: :svg))).to be(false)
+    it 'rejects an icon whose format is not listed' do
+      config = BrandLogo::Config.new(formats: %i[png])
+      expect(described_class.new(config).good_enough?(icon('s', format: :svg))).to be(false)
     end
 
     context 'with a target_size' do

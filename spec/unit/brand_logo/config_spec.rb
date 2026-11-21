@@ -6,7 +6,7 @@ RSpec.describe BrandLogo::Config do
   describe 'defaults' do
     it 'has sensible defaults' do
       expect(config).to have_attributes(
-        min_size: nil, max_size: nil, allow_svg: true, prefer: :square, target_size: nil, color_scheme: nil,
+        min_size: nil, max_size: nil, formats: nil, prefer: :square, target_size: nil, color_scheme: nil,
         timeout: 5, deadline: 15, max_hops: 5, concurrency: 4, block_private_ips: true,
         cache_ttl: 86_400, negative_cache_ttl: 3_600, user_agent: described_class::USER_AGENT
       )
@@ -57,6 +57,7 @@ RSpec.describe BrandLogo::Config do
     {
       'prefer must be one of' => { prefer: :tiny },
       'color_scheme must be nil or one of' => { color_scheme: :sepia },
+      'formats must be nil or a non-empty subset' => { formats: %i[png tiff] },
       'external_fallbacks must be within' => { external_fallbacks: [:bing] },
       'target_size must be positive' => { target_size: 0 },
       'timeout must be positive' => { timeout: 0 },
@@ -74,6 +75,10 @@ RSpec.describe BrandLogo::Config do
           described_class.new(**options)
         end.to raise_error(BrandLogo::ValidationError, /#{Regexp.escape(message)}/)
       end
+    end
+
+    it 'rejects an empty formats list' do
+      expect { described_class.new(formats: []) }.to raise_error(BrandLogo::ValidationError, /formats must be nil/)
     end
 
     it 'accepts a nil cache' do
@@ -114,7 +119,7 @@ RSpec.describe BrandLogo::Config do
     end
 
     {
-      min_size: 16, max_size: 256, allow_svg: false, prefer: :largest, target_size: 64,
+      min_size: 16, max_size: 256, formats: [:png], prefer: :largest, target_size: 64,
       color_scheme: :dark, external_fallbacks: [:google], block_private_ips: false
     }.each do |key, value|
       it "changes with #{key}" do
