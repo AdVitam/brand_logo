@@ -3,6 +3,12 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.0.3] - 2026-11-21
+
+### Changed
+
+- Every stage collection starts with the lookup: the manifest and browserconfig are fetched while document icons are probed. When the lookup stops early those requests are discarded, and nothing is fetched speculatively with `concurrency: 1`.
+
 ## [2.0.2] - 2026-10-27
 
 ### Security
