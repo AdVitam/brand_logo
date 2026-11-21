@@ -17,11 +17,12 @@ module BrandLogo
     sig { returns(T.nilable(Icon)) }
     def best
       icons = T.let([], T::Array[Icon])
+      collections = start_collections
       STAGES.each do |stage|
         break if @context.deadline.expired?
         next if skip?(stage, icons)
 
-        icons = run(stage, icons)
+        icons = run(stage, icons, collections.fetch(stage))
         winner = icons.first
         return winner if winner && @ranker.good_enough?(winner)
       end
@@ -30,8 +31,9 @@ module BrandLogo
 
     sig { returns(T::Array[Icon]) }
     def all
+      collections = start_collections
       STAGES.reduce(T.let([], T::Array[Icon])) do |icons, stage|
-        @context.deadline.expired? ? icons : run(stage, icons)
+        @context.deadline.expired? ? icons : run(stage, icons, collections.fetch(stage))
       end
     end
 
@@ -47,10 +49,18 @@ module BrandLogo
       stage == :external && icons.any? { |icon| @ranker.usable?(icon) }
     end
 
-    sig { params(stage: Symbol, previous: T::Array[Icon]).returns(T::Array[Icon]) }
-    def run(stage, previous)
+    sig { returns(T::Hash[Symbol, T.proc.returns(T::Array[Icon])]) }
+    def start_collections
+      STAGES.to_h { |stage| [stage, Concurrency.async(size: @context.config.concurrency) { collect(stage) }] }
+    end
+
+    sig do
+      params(stage: Symbol, previous: T::Array[Icon], collection: T.proc.returns(T::Array[Icon]))
+        .returns(T::Array[Icon])
+    end
+    def run(stage, previous, collection)
       seen = previous.to_set(&:url)
-      candidates = collect(stage).uniq(&:url).reject { |icon| seen.include?(icon.url) }
+      candidates = collection.call.uniq(&:url).reject { |icon| seen.include?(icon.url) }
       BrandLogo::Logging.logger.debug("[#{@context.domain}] #{stage}: #{candidates.size} new candidate(s)")
       @ranker.rank(previous + parallel(candidates) { |icon| measure(icon) }.compact)
     end
