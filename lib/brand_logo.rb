@@ -18,6 +18,8 @@ require_relative 'brand_logo/domain'
 require_relative 'brand_logo/http/response'
 require_relative 'brand_logo/http/client'
 require_relative 'brand_logo/http/url_guard'
+require_relative 'brand_logo/http/connection_pool'
+require_relative 'brand_logo/http/session'
 require_relative 'brand_logo/http/real_client'
 
 require_relative 'brand_logo/lenient_json'

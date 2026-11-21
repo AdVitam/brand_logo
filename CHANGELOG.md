@@ -3,6 +3,17 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [2.1.0] - 2026-11-21
+
+### Performance
+
+- Connections are reused per origin within a lookup: one TCP+TLS handshake per host instead of one per request, closed at the end of the lookup. A connection is only reused after a fully read 2xx response; redirects, errors and truncated bodies close it, and a pooled connection dropped by the server is replaced once.
+- Hosts are resolved once per lookup (not once per request and redirect hop), never globally: each lookup validates and pins its own addresses.
+
+### Added
+
+- `BrandLogo::Http::Client#session`: custom HTTP clients may override it to share state (such as connections) across the requests of one lookup. It yields `self` by default, so existing clients including `Http::Client` keep working unchanged.
+
 ## [2.0.2] - 2026-10-27
 
 ### Security

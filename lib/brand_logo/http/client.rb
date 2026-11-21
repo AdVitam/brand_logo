@@ -7,7 +7,7 @@ module BrandLogo
       extend T::Sig
       extend T::Helpers
 
-      interface!
+      abstract!
 
       # Never raises: any failure is nil, so strategies treat it as "no icon".
       # `max_bytes` still caps the read because servers may ignore `range`.
@@ -20,6 +20,16 @@ module BrandLogo
         ).returns(T.nilable(Response))
       end
       def get(url, deadline:, max_bytes:, range: nil); end
+
+      # One call per lookup: implementations may pool connections for its duration.
+      sig do
+        type_parameters(:R).params(
+          block: T.proc.params(client: Client).returns(T.type_parameter(:R))
+        ).returns(T.type_parameter(:R))
+      end
+      def session(&block)
+        yield self
+      end
     end
   end
 end
