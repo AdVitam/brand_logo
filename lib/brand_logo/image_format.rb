@@ -21,12 +21,14 @@ module BrandLogo
       'image/bmp' => :bmp
     }.freeze, T::Hash[String, Symbol])
 
+    ALL = T.let(MIME_TYPES.values.uniq.freeze, T::Array[Symbol])
+
     EXTENSIONS = T.let({
       'ico' => :ico, 'cur' => :ico, 'png' => :png, 'svg' => :svg, 'jpg' => :jpg, 'jpeg' => :jpg,
       'webp' => :webp, 'gif' => :gif, 'avif' => :avif, 'bmp' => :bmp
     }.freeze, T::Hash[String, Symbol])
 
-    FASTIMAGE_TYPES = T.let({ jpeg: :jpg, cur: :ico }.freeze, T::Hash[Symbol, Symbol])
+    FASTIMAGE_TYPES = T.let({ jpeg: :jpg }.freeze, T::Hash[Symbol, Symbol])
 
     sig { params(mime: T.untyped).returns(T.nilable(Symbol)) }
     def self.from_mime(mime)

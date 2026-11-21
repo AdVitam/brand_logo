@@ -45,10 +45,15 @@ module BrandLogo
 
     sig { params(icon: Icon).returns(T::Boolean) }
     def valid?(icon)
-      return false if icon.format.nil?
-      return @config.allow_svg if icon.svg?
+      return false if icon.format.nil? || !format_allowed?(icon)
 
-      within_limits?(icon.dimensions)
+      icon.svg? || within_limits?(icon.dimensions)
+    end
+
+    sig { params(icon: Icon).returns(T::Boolean) }
+    def format_allowed?(icon)
+      formats = @config.formats
+      formats.nil? || formats.include?(icon.format)
     end
 
     sig { params(dims: Dimensions).returns(T::Boolean) }

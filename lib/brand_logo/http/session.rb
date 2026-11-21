@@ -44,6 +44,9 @@ module BrandLogo
         ).returns(T.nilable(Response))
       end
       def get(url, deadline:, max_bytes:, range: nil)
+        # Stages discarded by an early stop may still be fetching after the lookup returned.
+        return nil if @pool.closed?
+
         current = url
         (@config.max_hops + 1).times do
           return nil if deadline.expired?

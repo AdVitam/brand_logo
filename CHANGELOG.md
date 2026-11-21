@@ -3,16 +3,41 @@
 All notable changes to this project will be documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [2.1.0] - 2026-11-21
+## [3.1.0] - 2026-11-21
 
 ### Performance
 
-- Connections are reused per origin within a lookup: one TCP+TLS handshake per host instead of one per request, closed at the end of the lookup. A connection is only reused after a fully read 2xx response; redirects, errors and truncated bodies close it, and a pooled connection dropped by the server is replaced once.
+- Connections are reused per origin within a lookup: one TCP+TLS handshake per host instead of one per request, closed at the end of the lookup. A connection is only reused after a fully read 2xx response; redirects, errors and truncated bodies close it, and a pooled connection dropped by the server is replaced once. Requests still running for a discarded stage once the lookup has returned are skipped.
 - Hosts are resolved once per lookup (not once per request and redirect hop), never globally: each lookup validates and pins its own addresses.
 
 ### Added
 
 - `BrandLogo::Http::Client#session`: custom HTTP clients may override it to share state (such as connections) across the requests of one lookup. It yields `self` by default, so existing clients including `Http::Client` keep working unchanged.
+
+## [3.0.0] - 2026-11-21
+
+Breaking change: see *Upgrading*.
+
+### Changed
+
+- The size of an ICO/CUR is that of the largest entry in its directory, not the first one, and a measured size takes precedence over a declared `sizes` attribute.
+- The default `user_agent` announces `BrandLogo/3`.
+
+### Removed
+
+- `allow_svg`, replaced by `formats`: an allow-list of accepted formats (`ico`, `png`, `svg`, `jpg`, `webp`, `gif`, `avif`, `bmp`), `nil` by default (all formats).
+
+### Upgrading from 2.x
+
+| 2.x | 3.0 |
+|---|---|
+| `Config.new(allow_svg: false)` | `Config.new(formats: %i[ico png jpg webp gif avif bmp])` (any list without `:svg`) |
+
+## [2.0.3] - 2026-11-21
+
+### Changed
+
+- Every stage collection starts with the lookup: the manifest and browserconfig are fetched while document icons are probed. When the lookup stops early those requests are discarded, and nothing is fetched speculatively with `concurrency: 1`.
 
 ## [2.0.2] - 2026-10-27
 

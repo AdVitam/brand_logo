@@ -54,6 +54,89 @@ RSpec.describe BrandLogo::Fetcher do
       end
     end
 
+    context 'when the declared size disagrees with the ICO directory' do
+      let(:responses) do
+        {
+          'https://example.com' => html('<link rel="icon" href="/favicon.ico" sizes="256x256">'),
+          'https://example.com/favicon.ico' => ImageFixtures.ico(32)
+        }
+      end
+
+      it 'trusts the measured size' do
+        expect(fetcher.fetch('example.com').dimensions).to eq(BrandLogo::Dimensions.new(width: 32, height: 32))
+      end
+    end
+
+    context 'when the largest ICO entry is not the first' do
+      let(:config) { BrandLogo::Config.new(cache: nil, min_size: 64) }
+      let(:responses) do
+        {
+          'https://example.com' => html('<link rel="icon" href="/favicon.ico">'),
+          'https://example.com/favicon.ico' => ImageFixtures.ico(16, 64)
+        }
+      end
+
+      it 'passes min_size' do
+        expect(fetcher.fetch('example.com').url).to eq('https://example.com/favicon.ico')
+      end
+    end
+
+    context 'with a declared manifest' do
+      let(:config) { BrandLogo::Config.new(cache: nil, external_fallbacks: [], concurrency: concurrency) }
+      let(:concurrency) { 4 }
+      let(:manifest) { 'https://example.com/site.webmanifest' }
+      let(:page) { html('<link rel="icon" href="/icon.png"><link rel="manifest" href="/site.webmanifest">') }
+      let(:manifest_json) { '{"icons":[{"src":"/icon-512.png","sizes":"512x512"}]}' }
+
+      context 'when the document icon is not good enough' do
+        let(:manifested) { Queue.new }
+        let(:overlap) { [] }
+        let(:responses) do
+          {
+            'https://example.com' => page,
+            'https://example.com/icon.png' => lambda {
+              overlap << manifested.pop(timeout: 1)
+              ImageFixtures.png(32, 32)
+            },
+            manifest => lambda {
+              manifested << true
+              manifest_json
+            },
+            'https://example.com/icon-512.png' => ImageFixtures.png(512, 512)
+          }
+        end
+
+        it 'fetches the manifest while the document icons are being probed' do
+          expect(fetcher.fetch('example.com').url).to eq('https://example.com/icon-512.png')
+          expect(overlap).to eq([true])
+        end
+      end
+
+      context 'when the document icon is good enough' do
+        let(:responses) do
+          {
+            'https://example.com' => page,
+            'https://example.com/icon.png' => ImageFixtures.png(192, 192),
+            manifest => manifest_json,
+            'https://example.com/icon-512.png' => ImageFixtures.png(512, 512)
+          }
+        end
+
+        it 'returns it without waiting for the manifest icons' do
+          expect(fetcher.fetch('example.com').url).to eq('https://example.com/icon.png')
+        end
+
+        context 'with a concurrency of 1' do
+          let(:concurrency) { 1 }
+
+          it 'never requests the manifest' do
+            fetcher.fetch('example.com')
+            expect(http.requests).not_to include(manifest)
+          end
+        end
+      end
+    end
+
     context 'when a mask-icon SVG sits next to a raster favicon' do
       let(:responses) do
         {
@@ -72,7 +155,7 @@ RSpec.describe BrandLogo::Fetcher do
       let(:responses) do
         {
           'https://example.com' => html('<link rel="icon" href="/gone.png">'),
-          'https://example.com/favicon.ico' => ImageFixtures.ico(32, 32)
+          'https://example.com/favicon.ico' => ImageFixtures.ico(32)
         }
       end
 
@@ -82,7 +165,7 @@ RSpec.describe BrandLogo::Fetcher do
     end
 
     context 'when only the external services know the domain' do
-      let(:responses) { { duckduckgo => ImageFixtures.ico(32, 32) } }
+      let(:responses) { { duckduckgo => ImageFixtures.ico(32) } }
 
       it 'falls back to them' do
         expect(fetcher.fetch('example.com').source).to eq(:duckduckgo)
@@ -94,7 +177,7 @@ RSpec.describe BrandLogo::Fetcher do
         {
           'https://example.com' => html('<meta property="og:image" content="/banner.png">'),
           'https://example.com/banner.png' => ImageFixtures.png(1200, 630),
-          duckduckgo => ImageFixtures.ico(32, 32)
+          duckduckgo => ImageFixtures.ico(32)
         }
       end
 
@@ -105,7 +188,7 @@ RSpec.describe BrandLogo::Fetcher do
 
     context 'when external fallbacks are disabled' do
       let(:config) { BrandLogo::Config.new(cache: nil, external_fallbacks: []) }
-      let(:responses) { { duckduckgo => ImageFixtures.ico(32, 32) } }
+      let(:responses) { { duckduckgo => ImageFixtures.ico(32) } }
 
       it 'does not call them' do
         expect(fetcher.fetch('example.com')).to be_nil
@@ -144,7 +227,7 @@ RSpec.describe BrandLogo::Fetcher do
         'https://example.com' => html('<link rel="icon" href="/icon.png">' \
                                       '<link rel="apple-touch-icon" href="/icon.png">'),
         'https://example.com/icon.png' => ImageFixtures.png(64, 64),
-        duckduckgo => ImageFixtures.ico(32, 32)
+        duckduckgo => ImageFixtures.ico(32)
       }
     end
 

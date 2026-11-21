@@ -53,8 +53,7 @@ RSpec.describe BrandLogo::ImageFormat do
 
   describe '.from_fastimage' do
     it 'maps FastImage types' do
-      expect([described_class.from_fastimage(:jpeg), described_class.from_fastimage(:cur),
-              described_class.from_fastimage(:png)]).to eq(%i[jpg ico png])
+      expect([described_class.from_fastimage(:jpeg), described_class.from_fastimage(:png)]).to eq(%i[jpg png])
     end
 
     it 'returns nil for nil' do

@@ -15,6 +15,12 @@ module BrandLogo
         @timeout = timeout
         @mutex = T.let(Mutex.new, Mutex)
         @idle = T.let({}, T::Hash[String, T::Array[Entry]])
+        @closed = T.let(false, T::Boolean)
+      end
+
+      sig { returns(T::Boolean) }
+      def closed?
+        @mutex.synchronize { @closed }
       end
 
       sig { params(origin: String, deadline: Deadline).returns(T.nilable(Entry)) }
@@ -40,12 +46,17 @@ module BrandLogo
 
       sig { params(origin: String, entry: Entry).void }
       def release(origin, entry)
-        @mutex.synchronize { (@idle[origin] ||= []).push(entry) }
+        return if @mutex.synchronize { (@idle[origin] ||= []).push(entry) unless @closed }
+
+        entry.client.close
       end
 
       sig { void }
       def close
-        entries = @mutex.synchronize { @idle.values.flatten.tap { @idle.clear } }
+        entries = @mutex.synchronize do
+          @closed = true
+          @idle.values.flatten.tap { @idle.clear }
+        end
         entries.each { |entry| entry.client.close }
       end
     end

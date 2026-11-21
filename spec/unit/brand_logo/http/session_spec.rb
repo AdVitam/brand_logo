@@ -280,6 +280,13 @@ RSpec.describe BrandLogo::Http::Session do
       stub_request(:get, %r{\Ahttps://example\.com/}).to_return(body: 'ok')
     end
 
+    it 'skips requests once closed' do
+      session.close
+
+      expect(fetch('https://example.com/a')).to be_nil
+      expect(a_request(:get, 'https://example.com/a')).not_to have_been_made
+    end
+
     it 'serves two requests to the same origin with one client' do
       fetch('https://example.com/a')
       fetch('https://example.com/b')
