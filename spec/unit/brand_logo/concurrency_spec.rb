@@ -76,4 +76,39 @@ RSpec.describe BrandLogo::Concurrency do
       end.not_to output.to_stderr
     end
   end
+
+  describe '.async' do
+    it 'returns the block value' do
+      expect(described_class.async(size: 2) { 42 }.call).to eq(42)
+    end
+
+    it 'runs the block on another thread' do
+      expect(described_class.async(size: 2) { Thread.current }.call).not_to eq(Thread.current)
+    end
+
+    it 're-raises the block error when called' do
+      deferred = described_class.async(size: 2) { raise ArgumentError, 'boom' }
+
+      expect { deferred.call }.to raise_error(ArgumentError, 'boom')
+    end
+
+    it 'does not print the block error' do
+      expect do
+        described_class.async(size: 2) { raise 'quiet' }.call
+      rescue RuntimeError
+        nil
+      end.not_to output.to_stderr
+    end
+
+    it 'defers the block until called, without a thread when size is 1' do
+      ran = false
+      expect(Thread).not_to receive(:new)
+
+      deferred = described_class.async(size: 1) { ran = true }
+      expect(ran).to be(false)
+
+      deferred.call
+      expect(ran).to be(true)
+    end
+  end
 end
