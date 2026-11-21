@@ -22,8 +22,12 @@ module BrandLogo
 
     sig { params(icons: T::Array[Icon]).returns(T::Array[Icon]) }
     def rank(icons)
-      icons.select { |icon| valid?(icon) }
-           .each_with_index
+      order(icons.select { |icon| valid?(icon) })
+    end
+
+    sig { params(icons: T::Array[Icon]).returns(T::Array[Icon]) }
+    def order(icons)
+      icons.each_with_index
            .sort_by { |icon, index| [*penalty(icon), index] }
            .map(&:first)
     end

@@ -10,6 +10,13 @@ RSpec.describe BrandLogo::Ranker do
     described_class.new(BrandLogo::Config.new(**options)).rank(icons).map(&:url)
   end
 
+  describe '#order' do
+    it 'keeps icons without a format or measured size, after larger declared sizes' do
+      icons = [icon('unknown', format: nil), icon('small', size: [16, 16]), icon('big', format: nil, size: [192, 192])]
+      expect(described_class.new(BrandLogo::Config.new).order(icons).map(&:url)).to eq(%w[big small unknown])
+    end
+  end
+
   describe '#rank' do
     it 'drops icons without a probed format' do
       expect(rank([icon('a', format: nil, size: [64, 64]), icon('b', size: [32, 32])])).to eq(['b'])
