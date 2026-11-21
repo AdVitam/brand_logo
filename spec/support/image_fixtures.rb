@@ -11,8 +11,11 @@ module ImageFixtures
     "\x89PNG\r\n\x1a\n".b + [13].pack('N') + ihdr + [Zlib.crc32(ihdr)].pack('N')
   end
 
-  def ico(width, height)
-    [0, 1, 1].pack('v3') + [width % 256, height % 256, 0, 0, 1, 32, 0, 22].pack('C4v2V2')
+  def ico(*sizes, type: 1)
+    entries = sizes.map do |width, height|
+      [width % 256, (height || width) % 256, 0, 0, 1, 32, 0, 22].pack('C4v2V2')
+    end
+    ([0, type, sizes.size].pack('v3') + entries.join).b
   end
 
   def svg(width = nil, height = nil)

@@ -13,6 +13,41 @@ RSpec.describe BrandLogo::ImageProbe do
     expect(result).to have_attributes(format: :ico, dimensions: BrandLogo::Dimensions.new(width: 48, height: 48))
   end
 
+  it 'keeps the largest ICO entry even when it is not the first' do
+    result = described_class.analyze(ImageFixtures.ico(16, [48, 32], 24))
+
+    expect(result.dimensions).to eq(BrandLogo::Dimensions.new(width: 48, height: 32))
+  end
+
+  it 'reads a zero entry size as 256' do
+    result = described_class.analyze(ImageFixtures.ico(16, 256))
+
+    expect(result.dimensions).to eq(BrandLogo::Dimensions.new(width: 256, height: 256))
+  end
+
+  it 'identifies a CUR as an ICO' do
+    result = described_class.analyze(ImageFixtures.ico(32, type: 2))
+
+    expect(result).to have_attributes(format: :ico, dimensions: BrandLogo::Dimensions.new(width: 32, height: 32))
+  end
+
+  it 'keeps the complete entries of a truncated ICO directory' do
+    result = described_class.analyze(ImageFixtures.ico(16, 64, 128)[0, 6 + (16 * 2) + 5])
+
+    expect(result.dimensions).to eq(BrandLogo::Dimensions.new(width: 64, height: 64))
+  end
+
+  it 'returns an ICO with unknown dimensions when the directory is empty' do
+    result = described_class.analyze(ImageFixtures.ico)
+
+    expect(result.format).to eq(:ico)
+    expect(result.dimensions).not_to be_known
+  end
+
+  it 'identifies a CUR cut before its entry count as an ICO' do
+    expect(described_class.analyze(ImageFixtures.ico(32, type: 2)[0, 4]).format).to eq(:ico)
+  end
+
   it 'identifies an SVG with explicit dimensions' do
     result = described_class.analyze(ImageFixtures.svg(24, 12))
 

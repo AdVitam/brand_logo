@@ -38,8 +38,8 @@ module BrandLogo
     sig { returns(T.nilable(Dimensions)) }
     def max_size; end
 
-    sig { returns(T::Boolean) }
-    def allow_svg; end
+    sig { returns(T.nilable(T::Array[Symbol])) }
+    def formats; end
 
     sig { returns(Symbol) }
     def prefer; end

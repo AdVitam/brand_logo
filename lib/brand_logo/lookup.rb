@@ -66,17 +66,8 @@ module BrandLogo
       result = @context.probe(icon.url)
       return nil unless result
 
-      icon.with(format: result.format, dimensions: measured_dimensions(icon, result))
-    end
-
-    # FastImage reads only the first entry of an .ico, which is often smaller than the declared largest one.
-    sig { params(icon: Icon, result: ImageProbe::Result).returns(Dimensions) }
-    def measured_dimensions(icon, result)
-      measured = result.dimensions
-      return icon.dimensions unless measured.known?
-      return [measured, icon.dimensions].max_by(&:area) || measured if result.format == :ico
-
-      measured
+      dimensions = result.dimensions
+      icon.with(format: result.format, dimensions: dimensions.known? ? dimensions : icon.dimensions)
     end
 
     sig do
