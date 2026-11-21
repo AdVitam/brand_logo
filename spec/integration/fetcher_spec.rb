@@ -137,6 +137,37 @@ RSpec.describe BrandLogo::Fetcher do
       end
     end
 
+    context 'with more declared icons than the concurrency' do
+      let(:config) { BrandLogo::Config.new(cache: nil, external_fallbacks: [], concurrency: 2) }
+      let(:sizes) { { 'a' => 16, 'b' => 32, 'c' => 192, 'd' => 48, 'e' => 64 } }
+      let(:measured) { sizes }
+      let(:responses) do
+        links = sizes.map { |name, side| %(<link rel="icon" href="/#{name}.png" sizes="#{side}x#{side}">) }.join
+        measured.to_h { |name, side| ["https://example.com/#{name}.png", ImageFixtures.png(side, side)] }
+                .merge('https://example.com' => html(links))
+      end
+
+      it 'probes the best declared icons first and skips the rest once one is good enough' do
+        expect(fetcher.fetch('example.com').url).to eq('https://example.com/c.png')
+        expect(http.requests).to contain_exactly('https://example.com', 'https://example.com/c.png',
+                                                 'https://example.com/e.png')
+      end
+
+      context 'when the first batch declares more than it measures' do
+        let(:measured) { sizes.merge('c' => 16, 'd' => 256) }
+
+        it 'probes the next batch' do
+          expect(fetcher.fetch('example.com').url).to eq('https://example.com/d.png')
+          expect(http.requests).to include('https://example.com/c.png', 'https://example.com/d.png')
+        end
+      end
+
+      it 'still probes every icon for fetch_all' do
+        fetcher.fetch_all('example.com')
+        expect(http.requests).to include(*sizes.keys.map { |name| "https://example.com/#{name}.png" })
+      end
+    end
+
     context 'when a mask-icon SVG sits next to a raster favicon' do
       let(:responses) do
         {
